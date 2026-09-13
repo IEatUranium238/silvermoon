@@ -118,6 +118,23 @@ pugi::xml_document Parser::readFile(std::string filepath) {
 
   // Preprocess them
   contents = preprocessTags(contents);
+
+  // Remove DOCTYPE if it exists at the start of the document to avoid bugs, we
+  // will get it back anyway from formatter if needed
+  size_t first = contents.find_first_not_of(" \t\r\n");
+
+  if (first != std::string::npos &&
+      (contents.compare(first, 9, "<!DOCTYPE") == 0 ||
+       contents.compare(first, 9, "<!doctype") == 0)) {
+
+    size_t doctypeEnd = contents.find('>', first);
+
+    if (doctypeEnd != std::string::npos) {
+      contents.erase(first, doctypeEnd - first + 1);
+    }
+  }
+
+  // Wrap the contents so rootless files are valid
   contents = "<sm-wrap-content>" + contents + "</sm-wrap-content>";
 
   // Feed to pugixml
