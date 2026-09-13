@@ -8,6 +8,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(pugixml REQUIRED)
 find_package(PkgConfig REQUIRED)
 
+find_library(FCGI NAMES fcgi)
+find_path(FCGI_INCLUDE_DIR NAMES fastcgi.h fcgio.h)
+find_library(FCGI_CPP_LIBRARY NAMES fcgi++)
+
 pkg_check_modules(LUAJIT REQUIRED luajit)
 pkg_check_modules(TIDY REQUIRED tidy)
 
@@ -35,6 +39,12 @@ target_link_libraries(silvermoon PRIVATE
     pugixml::pugixml
     ${LUAJIT_LIBRARIES}
     ${TIDY_LIBRARIES}
+)
+
+target_include_directories(silvermoon PRIVATE ${FCGI_INCLUDE_DIR})
+target_link_libraries(silvermoon PRIVATE 
+    ${FCGI_CPP_LIBRARY} 
+    ${FCGI_C_LIBRARY}
 )
 
 target_compile_definitions(silvermoon PRIVATE SM_VERSION="${PROJECT_VERSION}")
