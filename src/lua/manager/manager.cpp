@@ -28,7 +28,8 @@ LuaManager::LuaManager(std::string basePath) {
   lua.open_libraries(sol::lib::base, sol::lib::coroutine, sol::lib::package,
                      sol::lib::string, sol::lib::os, sol::lib::math,
                      sol::lib::table, sol::lib::io, sol::lib::debug,
-                     sol::lib::utf8);
+                     sol::lib::utf8, sol::lib::bit32, sol::lib::ffi,
+                     sol::lib::jit);
 
   // Add current file's path to module path
   if (!basePath.empty()) {

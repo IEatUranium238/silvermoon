@@ -119,8 +119,8 @@ pugi::xml_document Parser::readFile(std::string filepath) {
   // Preprocess them
   contents = preprocessTags(contents);
 
-  // Remove DOCTYPE if it exists at the start of the document to avoid bugs, we
-  // will get it back anyway from formatter if needed
+  // Remove DOCTYPE if it exists at the start of the document to avoid problems
+  // with wrap container, we will get it back anyway from formatter if needed
   size_t first = contents.find_first_not_of(" \t\r\n");
 
   if (first != std::string::npos &&
