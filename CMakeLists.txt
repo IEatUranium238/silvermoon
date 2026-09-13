@@ -36,3 +36,5 @@ target_link_libraries(silvermoon PRIVATE
     ${LUAJIT_LIBRARIES}
     ${TIDY_LIBRARIES}
 )
+
+target_compile_definitions(silvermoon PRIVATE SM_VERSION="${PROJECT_VERSION}")

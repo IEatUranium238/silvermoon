@@ -122,10 +122,37 @@ pugi::xml_document Parser::readFile(std::string filepath) {
   // Feed to pugixml
   pugi::xml_document doc;
 
-  if (!doc.load_string(contents.c_str(),
-                       pugi::parse_default | pugi::parse_comments))
-    return doc; // TODO: Add error handeling
+  pugi::xml_parse_result result = doc.load_string(
+      contents.c_str(), pugi::parse_default | pugi::parse_comments);
 
+  if (!result) {
+    pugi::xml_document errDoc;
+
+    // Create the HTML
+    std::string errorHtml =
+        "<html>"
+        "<head><title>Silvermoon parsing error</title></head>"
+        "<body>"
+        "<h1>Failed to parse the Silvermoon HTML Document</h1>"
+        "<p><strong>Description:</strong> " +
+        std::string(result.description()) +
+        "</p>"
+        "<p><strong>Offset:</strong> " +
+        std::to_string(result.offset) +
+        "</p>"
+        "<p><strong>File:</strong> " +
+        filepath +
+        "</p>" +
+        "<hr/>" +
+        "<p> Silvermoon version " + SM_VERSION + "</p>"+
+        "</body>"
+        "</html>";
+
+    errDoc.load_string(errorHtml.c_str(),
+                       pugi::parse_default | pugi::parse_comments);
+
+    return errDoc;
+  }
   return doc;
 }
 } // namespace html::prs
