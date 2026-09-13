@@ -118,6 +118,7 @@ pugi::xml_document Parser::readFile(std::string filepath) {
 
   // Preprocess them
   contents = preprocessTags(contents);
+  contents = "<sm-wrap-content>" + contents + "</sm-wrap-content>";
 
   // Feed to pugixml
   pugi::xml_document doc;
@@ -131,9 +132,47 @@ pugi::xml_document Parser::readFile(std::string filepath) {
     // Create the HTML
     std::string errorHtml =
         "<html>"
-        "<head><title>Silvermoon parsing error</title></head>"
+        "<head>"
+        "<title>Silvermoon Parsing Error</title>"
+        "<style>"
+        "body {"
+        "    font-family: sans-serif;"
+        "    max-width: 800px;"
+        "    margin: 40px auto;"
+        "    padding: 0 20px;"
+        "    color: #333;"
+        "    background: #f5f5f5;"
+        "}"
+        "h1 {"
+        "    color: #b42318;"
+        "}"
+        "h2 {"
+        "    margin-top: 30px;"
+        "}"
+        "h3 {"
+        "    margin-bottom: 5px;"
+        "}"
+        "p {"
+        "    line-height: 1.5;"
+        "}"
+        "hr {"
+        "    margin: 30px 0;"
+        "    border: 0;"
+        "    border-top: 1px solid #ccc;"
+        "}"
+        "small {"
+        "    color: #777;"
+        "}"
+        "</style>"
+        "</head>"
         "<body>"
-        "<h1>Failed to parse the Silvermoon HTML Document</h1>"
+
+        "<h1>Failed to Parse Silvermoon HTML Document</h1>"
+
+        "<p>Silvermoon encountered an error while trying to parse this "
+        "Silvermoon HTML document.</p>"
+
+        "<h2>Error Details</h2>"
         "<p><strong>Description:</strong> " +
         std::string(result.description()) +
         "</p>"
@@ -142,9 +181,33 @@ pugi::xml_document Parser::readFile(std::string filepath) {
         "</p>"
         "<p><strong>File:</strong> " +
         filepath +
-        "</p>" +
-        "<hr/>" +
-        "<p> Silvermoon version " + SM_VERSION + "</p>"+
+        "</p>"
+
+        "<hr/>"
+
+        "<h2>What to Do</h2>"
+
+        "<h3>Site Owner / Developer</h3>"
+        "<p>"
+        "Check the HTML document around the reported offset and look for "
+        "invalid, malformed, or unsupported markup. Correct the document "
+        "and try loading it again."
+        "</p>"
+
+        "<h3>Visitor</h3>"
+        "<p>"
+        "Try refreshing the page or returning to the previous page. "
+        "If the problem persists, contact the site owner and report "
+        "the error shown above."
+        "</p>"
+
+        "<hr/>"
+
+        "<p><small>"
+        "Silvermoon version " +
+        SM_VERSION +
+        "</small></p>"
+
         "</body>"
         "</html>";
 

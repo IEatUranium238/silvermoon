@@ -149,8 +149,10 @@ std::string Creator::createHTML(const pugi::xml_document &doc, std::string fp) {
   error = false;
   out << "<!DOCTYPE html>"; // Append doctype declaration
 
+  pugi::xml_node root = doc.document_element();
+
   // Build for each child in the document
-  for (auto child : doc.children())
+  for (auto child : root.children())
     render(child, out, script);
 
   // Format html and clean it up
