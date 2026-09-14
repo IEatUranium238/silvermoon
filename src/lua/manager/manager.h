@@ -1,6 +1,7 @@
 #ifndef MANAGER_H
 #define MANAGER_H
 #pragma once
+#include <map>
 #include <sol/sol.hpp>
 #include <string>
 #include <utility>
@@ -13,7 +14,9 @@ private:
   std::string printed = "";
 
 public:
-  LuaManager(std::string basePath);
+  LuaManager(std::string basePath, std::map<std::string, std::string> cgi,
+             std::map<std::string, std::string> headers,
+             std::map<std::string, std::string> body);
   std::pair<bool, std::string> runCode(const std::string code);
 };
 } // namespace lua::mngr

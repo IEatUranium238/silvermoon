@@ -23,13 +23,14 @@ void worker(FCGX_Request *request) {
     std::string key = entry.substr(0, split);
     std::string value = entry.substr(split + 1);
 
-    cgi[key] = value;
-
     // HTTP headers start with HTTP_
     if (key.rfind("HTTP_", 0) == 0) {
       std::string headerName = key.substr(5);
       headers[headerName] = value;
+      continue;
     }
+
+    cgi[key] = value;
   }
 
   // Read body
@@ -66,7 +67,7 @@ void worker(FCGX_Request *request) {
   html::prs::Parser parser;
   pugi::xml_document parsedDoc = parser.readFile(script);
   html::crt::Creator creator;
-  std::string res = creator.createHTML(parsedDoc, script);
+  std::string res = creator.createHTML(parsedDoc, script, cgi, headers, body);
 
   // Give the result
   res = "Status: 200\r\nContent-Type: text/html\r\n\r\n" + res;

@@ -1,5 +1,6 @@
 #include "./manager.h"
 #include <iostream>
+#include <map>
 #include <utility>
 
 namespace lua::mngr {
@@ -23,12 +24,28 @@ std::string escape(std::string s) {
 }
 
 // Create a new lua manager
-LuaManager::LuaManager(std::string basePath) {
-  // Open all libraries
+LuaManager::LuaManager(std::string basePath,
+                       std::map<std::string, std::string> cgi,
+                       std::map<std::string, std::string> headers,
+                       std::map<std::string, std::string> body) {
+  // Open libraries
   lua.open_libraries(sol::lib::base, sol::lib::coroutine, sol::lib::package,
                      sol::lib::string, sol::lib::os, sol::lib::math,
                      sol::lib::table, sol::lib::io, sol::lib::utf8,
                      sol::lib::bit32);
+
+  // TODO: make alternatives for some needed, but EVIL functions
+  // Remove evil functions
+  lua["os"]["execute"] = sol::nil;
+  lua["os"]["exit"] = sol::nil;
+  lua["os"]["remove"] = sol::nil;
+  lua["os"]["rename"] = sol::nil;
+
+  lua["io"]["open"] = sol::nil;
+  lua["io"]["popen"] = sol::nil;
+
+  lua["dofile"] = sol::nil;
+  lua["loadfile"] = sol::nil;
 
   // Add current file's path to module path
   if (!basePath.empty()) {
@@ -45,18 +62,11 @@ LuaManager::LuaManager(std::string basePath) {
     }
   };
 
-  // TODO: make alternatives for some needed, but EVIL functions
-  // Remove evil functions
-  lua["os"]["execute"] = sol::nil;
-  lua["os"]["exit"] = sol::nil;
-  lua["os"]["remove"] = sol::nil;
-  lua["os"]["rename"] = sol::nil;
-
-  lua["io"]["open"] = sol::nil;
-  lua["io"]["popen"] = sol::nil;
-
-  lua["dofile"] = sol::nil;
-  lua["loadfile"] = sol::nil;
+  // APШ
+  lua["sm"] = lua.create_table();
+  lua["sm"]["request"] = sol::as_table(cgi);
+  lua["sm"]["header"] = sol::as_table(headers);
+  lua["sm"]["body"] = sol::as_table(body);
 }
 
 /// @brief Execute lua string code
