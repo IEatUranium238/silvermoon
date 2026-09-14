@@ -19,7 +19,7 @@ public:
   std::string createHTML(const pugi::xml_document &doc, std::string fp,
                          std::map<std::string, std::string> cgi,
                          std::map<std::string, std::string> headers,
-                         std::map<std::string, std::string> body);
+                         std::string body);
 };
 } // namespace html::crt
 

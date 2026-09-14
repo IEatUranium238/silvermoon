@@ -27,7 +27,7 @@ std::string escape(std::string s) {
 LuaManager::LuaManager(std::string basePath,
                        std::map<std::string, std::string> cgi,
                        std::map<std::string, std::string> headers,
-                       std::map<std::string, std::string> body) {
+                       std::string body) {
   // Open libraries
   lua.open_libraries(sol::lib::base, sol::lib::coroutine, sol::lib::package,
                      sol::lib::string, sol::lib::os, sol::lib::math,
@@ -56,17 +56,31 @@ LuaManager::LuaManager(std::string basePath,
 
   // Override print to act as echo
   lua["print"] = [this](sol::variadic_args va, sol::this_state ts) {
+    sol::state_view lua(ts);
+
+    sol::function tostring = lua["tostring"];
+
+    bool first = true;
+
     for (auto arg : va) {
-      printed +=
-          sol::stack::get<std::string>(lua.lua_state(), arg.stack_index());
+      if (!first)
+        printed += '\t';
+
+      first = false;
+
+      sol::protected_function_result result = tostring(arg);
+
+      printed += result.get<std::string>();
     }
+
+    printed += '\n';
   };
 
-  // APШ
+  // API
   lua["sm"] = lua.create_table();
   lua["sm"]["request"] = sol::as_table(cgi);
   lua["sm"]["header"] = sol::as_table(headers);
-  lua["sm"]["body"] = sol::as_table(body);
+  lua["sm"]["body"] = body;
 }
 
 /// @brief Execute lua string code

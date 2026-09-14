@@ -9,7 +9,7 @@
 void worker(FCGX_Request *request) {
   std::map<std::string, std::string> cgi;
   std::map<std::string, std::string> headers;
-  std::map<std::string, std::string> body;
+  std::string body;
 
   // CGI variables
   for (char **env = request->envp; *env != nullptr; env++) {
@@ -38,7 +38,7 @@ void worker(FCGX_Request *request) {
 
   int read;
   while ((read = FCGX_GetStr(buffer, sizeof(buffer), request->in)) > 0) {
-    body["raw"] += std::string(buffer, read);
+    body += std::string(buffer, read);
   }
 
   // Find the script

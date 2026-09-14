@@ -93,7 +93,7 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
 std::string Creator::createHTML(const pugi::xml_document &doc, std::string fp,
                                 std::map<std::string, std::string> cgi,
                                 std::map<std::string, std::string> headers,
-                                std::map<std::string, std::string> body) {
+                                std::string body) {
   std::ostringstream out;
   lua::mngr::LuaManager script(fp,cgi,headers,body);
 
