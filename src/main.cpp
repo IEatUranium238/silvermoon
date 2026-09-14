@@ -54,7 +54,7 @@ void worker(FCGX_Request *request) {
 
   if (!std::filesystem::exists(checkpath)) {
     std::string res = "Status: 404\r\nContent-Type: text/html\r\n\r\n";
-    FCGX_FPrintF(request->out, res.c_str());
+    FCGX_FPrintF(request->out, "%s", res.c_str());
 
     FCGX_Finish_r(request);
     delete request;
@@ -69,9 +69,10 @@ void worker(FCGX_Request *request) {
   std::string res = creator.createHTML(parsedDoc, script);
 
   // Give the result
-  res = "Status: 200\r\nContent-Type: text/html\r\n\r\n" + res;
+  res = "Status: 200\r\nContent-Type: text/html\r\n\r\nContent-Length: " +
+        std::to_string(res.length()) + "\r\n" + res;
 
-  FCGX_FPrintF(request->out, res.c_str());
+  FCGX_FPrintF(request->out, "%s", res.c_str());
 
   FCGX_Finish_r(request);
   delete request;

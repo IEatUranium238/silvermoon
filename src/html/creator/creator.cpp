@@ -84,7 +84,7 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
     break;
   }
   case pugi::node_cdata: // Add data in script/style tags
-    out << escape(node.value());
+    out << node.value();
     break;
   case pugi::node_comment: // Add comments
     out << "<!--" << escape(node.value()) << "-->";
@@ -149,6 +149,7 @@ std::string Creator::createHTML(const pugi::xml_document &doc, std::string fp) {
   error = false;
   out << "<!DOCTYPE html>"; // Append doctype declaration
 
+  // Get contents from sm-wrap-content wrapper
   pugi::xml_node root = doc.document_element();
 
   // Build for each child in the document

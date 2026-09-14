@@ -27,9 +27,8 @@ LuaManager::LuaManager(std::string basePath) {
   // Open all libraries
   lua.open_libraries(sol::lib::base, sol::lib::coroutine, sol::lib::package,
                      sol::lib::string, sol::lib::os, sol::lib::math,
-                     sol::lib::table, sol::lib::io, sol::lib::debug,
-                     sol::lib::utf8, sol::lib::bit32, sol::lib::ffi,
-                     sol::lib::jit);
+                     sol::lib::table, sol::lib::io, sol::lib::utf8,
+                     sol::lib::bit32);
 
   // Add current file's path to module path
   if (!basePath.empty()) {
@@ -41,10 +40,23 @@ LuaManager::LuaManager(std::string basePath) {
   // Override print to act as echo
   lua["print"] = [this](sol::variadic_args va, sol::this_state ts) {
     for (auto arg : va) {
-      std::string str = arg.as<std::string>();
-      printed += str;
+      printed +=
+          sol::stack::get<std::string>(lua.lua_state(), arg.stack_index());
     }
   };
+
+  // TODO: make alternatives for some needed, but EVIL functions
+  // Remove evil functions
+  lua["os"]["execute"] = sol::nil;
+  lua["os"]["exit"] = sol::nil;
+  lua["os"]["remove"] = sol::nil;
+  lua["os"]["rename"] = sol::nil;
+
+  lua["io"]["open"] = sol::nil;
+  lua["io"]["popen"] = sol::nil;
+
+  lua["dofile"] = sol::nil;
+  lua["loadfile"] = sol::nil;
 }
 
 /// @brief Execute lua string code
