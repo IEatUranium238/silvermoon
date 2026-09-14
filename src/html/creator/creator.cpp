@@ -5,11 +5,6 @@
 #include <sstream>
 #include <string>
 
-extern "C" {
-#include <tidy/tidy.h>
-#include <tidy/tidybuffio.h>
-}
-
 namespace html::crt {
 
 // Escape data for html
@@ -94,53 +89,6 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
   }
 }
 
-// Format the HTML
-std::string Creator::beautifyHtml(const std::string &inputHtml) {
-  TidyDoc tdoc = tidyCreate();
-
-  // Some scary C library tomfoolery
-  TidyBuffer output;
-  TidyBuffer errbuf;
-  tidyBufInit(&output);
-  tidyBufInit(&errbuf);
-
-  int rc = -1;
-
-  // Configuration
-  tidyOptSetInt(tdoc, TidyIndentContent, TidyIndentSpaces);
-  tidyOptSetInt(tdoc, TidyIndentSpaces, 4);
-  tidyOptSetInt(tdoc, TidyWrapLen, 0);
-  tidyOptSetBool(tdoc, TidyMark, no);
-  tidyOptParseValue(tdoc, "show-body-only", "auto");
-
-  // Capture errors and warnings
-  rc = tidySetErrorBuffer(tdoc, &errbuf);
-
-  // Parse the input
-  if (rc >= 0)
-    rc = tidyParseString(tdoc, inputHtml.c_str());
-  // Clean it
-  if (rc >= 0)
-    rc = tidyCleanAndRepair(tdoc);
-  // Serialize back
-  if (rc >= 0)
-    rc = tidySaveBuffer(tdoc, &output);
-
-  std::string resultHtml;
-
-  if (rc >= 0) {
-    resultHtml = reinterpret_cast<char *>(output.bp);
-  } else {
-    std::cerr << "Tidy Error: " << errbuf.bp << std::endl;
-  }
-
-  // Clean up memory
-  tidyBufFree(&output);
-  tidyBufFree(&errbuf);
-  tidyRelease(tdoc);
-
-  return resultHtml;
-}
 
 std::string Creator::createHTML(const pugi::xml_document &doc, std::string fp) {
   std::ostringstream out;
@@ -156,7 +104,6 @@ std::string Creator::createHTML(const pugi::xml_document &doc, std::string fp) {
   for (auto child : root.children())
     render(child, out, script);
 
-  // Format html and clean it up
-  return beautifyHtml(out.str());
+  return out.str();
 }
 } // namespace html::crt

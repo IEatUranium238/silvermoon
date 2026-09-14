@@ -69,8 +69,7 @@ void worker(FCGX_Request *request) {
   std::string res = creator.createHTML(parsedDoc, script);
 
   // Give the result
-  res = "Status: 200\r\nContent-Type: text/html\r\n\r\nContent-Length: " +
-        std::to_string(res.length()) + "\r\n" + res;
+  res = "Status: 200\r\nContent-Type: text/html\r\n\r\n" + res;
 
   FCGX_FPrintF(request->out, "%s", res.c_str());
 

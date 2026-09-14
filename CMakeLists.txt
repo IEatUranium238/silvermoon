@@ -13,7 +13,6 @@ find_path(FCGI_INCLUDE_DIR NAMES fastcgi.h fcgio.h)
 find_library(FCGI_CPP_LIBRARY NAMES fcgi++)
 
 pkg_check_modules(LUAJIT REQUIRED luajit)
-pkg_check_modules(TIDY REQUIRED tidy)
 
 add_executable(silvermoon
     ./src/main.cpp
@@ -27,18 +26,15 @@ add_executable(silvermoon
 
 target_include_directories(silvermoon PRIVATE
     ${LUAJIT_INCLUDE_DIRS}
-    ${TIDY_INCLUDE_DIRS}
 )
 
 target_link_directories(silvermoon PRIVATE
     ${LUAJIT_LIBRARY_DIRS}
-    ${TIDY_LIBRARY_DIRS}
 )
 
 target_link_libraries(silvermoon PRIVATE
     pugixml::pugixml
     ${LUAJIT_LIBRARIES}
-    ${TIDY_LIBRARIES}
 )
 
 target_include_directories(silvermoon PRIVATE ${FCGI_INCLUDE_DIR})
