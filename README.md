@@ -75,7 +75,7 @@ You can use both return and print() to echo html content.
 
 Silvermoon uses Lua 5.1.
 
-**Following libraries are avaible for use:**
+**Following libraries are available for use:**
 
 - base
 - coroutine
