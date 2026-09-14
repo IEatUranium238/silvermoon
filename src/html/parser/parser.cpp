@@ -184,10 +184,10 @@ pugi::xml_document Parser::readFile(std::string filepath) {
         "</head>"
         "<body>"
 
-        "<h1>Failed to Parse Silvermoon HTML Document</h1>"
+        "<h1>Failed to parse Silvermoon XHTML5 document</h1>"
 
         "<p>Silvermoon encountered an error while trying to parse this "
-        "Silvermoon HTML document.</p>"
+        "Silvermoon XHTML5 document.</p>"
 
         "<h2>Error Details</h2>"
         "<p><strong>Description:</strong> " +
@@ -204,7 +204,7 @@ pugi::xml_document Parser::readFile(std::string filepath) {
 
         "<h2>What to Do</h2>"
 
-        "<h3>Site Owner / Developer</h3>"
+        "<h3>Site owner / Developer</h3>"
         "<p>"
         "Check the HTML document around the reported offset and look for "
         "invalid, malformed, or unsupported markup. Correct the document "
