@@ -73,7 +73,7 @@ Example hello world program:
 
 You can use both return and print() to echo html content.
 
-Silvermoon usses Lua 5.1.
+Silvermoon uses Lua 5.1.
 
 **Following libraries are avaible for use:**
 
