@@ -39,7 +39,7 @@ cmake --build build
 
 ## Configuration
 
-You need to configure a web server of your choosing to use .sm files and redirect them to fastcgi via tcp.
+You need to configure a web server of your choosing to use .sm files and redirect them to fastcgi
 
 **Example configuration to add in Apache (000-default.conf):**
 
@@ -48,6 +48,19 @@ DirectoryIndex index.sm
 
 ProxyPassMatch "^/(.*\.sm)$" "fcgi://127.0.0.1:9000/var/www/html/$1"
 ```
+
+### UNIX Socket usage
+You can also configure it to use an unix socket to communicate with the web server.
+To do it, do following:
+1. Set SM_USE_UNIXSOCKS env variable to "true"
+2. Change your server config to use UNIX socket instead, example for Apache:
+```
+DirectoryIndex index.sm
+
+ProxyPassMatch "^/(.*\.sm)$" "unix:/var/run/silvermoon_fcgi.sock|/var/www/html/$1"
+```
+3. Restart your web server and silvermoon
+
 
 > NOTE: replace `/var/www/html/` with your Apache's web root if different!
 
@@ -132,7 +145,6 @@ I currently don't enforce any coding style but it would be nice if you set your 
 
 ## Roadmap
 
-- Unix socket support
 - Add safer alternatives for removed functions in sm's API
 - Create API that would allow some form of production use
 - Other platform builds
