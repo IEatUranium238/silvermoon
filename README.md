@@ -50,17 +50,20 @@ ProxyPassMatch "^/(.*\.sm)$" "fcgi://127.0.0.1:9000/var/www/html/$1"
 ```
 
 ### UNIX Socket usage
+
 You can also configure it to use an unix socket to communicate with the web server.
 To do it, do following:
+
 1. Set SM_USE_UNIXSOCKS env variable to "true"
 2. Change your server config to use UNIX socket instead, example for Apache:
+
 ```
 DirectoryIndex index.sm
 
 ProxyPassMatch "^/(.*\.sm)$" "unix:/var/run/silvermoon_fcgi.sock|/var/www/html/$1"
 ```
-3. Restart your web server and silvermoon
 
+3. Restart your web server and silvermoon
 
 > NOTE: replace `/var/www/html/` with your Apache's web root if different!
 
@@ -132,7 +135,7 @@ If everything works correctly with code from example, you should see h1 tag with
 Currently we only provide request data such as:
 
 - sm.request - dictionary for general purpose info such as `REQUEST_METHOD`
-- sm.header - dictionary for http headers
+- sm.header - dictionary for http headers (FastCGI headers that start with `HTTP_`, with that part removed from the key itself)
 - sm.body - string for body content
 
 **Key names use SCREAMING_SNAKE_CASE and match names given from FastCGI**
