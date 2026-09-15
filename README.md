@@ -147,9 +147,7 @@ Contributions are welcome, create the PR and I will review it.
 I currently don't enforce any coding style but it would be nice if you set your code formatter to LLVM style.
 
 ## Roadmap
-
 - Add safer alternatives for removed functions in sm's API
-- Better debuging, lua tag debug IDs?
 - Create API that would allow some form of production use
 - Other platform builds
 - ???
