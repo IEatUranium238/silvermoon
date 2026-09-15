@@ -54,7 +54,7 @@ ProxyPassMatch "^/(.*\.sm)$" "fcgi://127.0.0.1:9000/var/www/html/$1"
 You can also configure it to use an unix socket to communicate with the web server.
 To do it, do following:
 
-1. Set SM_USE_UNIXSOCKS env variable to "true"
+1. Set SM_USE_UNIXSOCKS env variable to "true" (as string, not a boolean)
 2. Change your server config to use UNIX socket instead, example for Apache:
 
 ```
