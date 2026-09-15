@@ -1,10 +1,10 @@
 #include "./creator.h"
 #include "../../lua/manager/manager.h"
 #include <algorithm>
+#include <map>
 #include <pugixml.hpp>
 #include <sstream>
 #include <string>
-#include <map>
 
 namespace html::crt {
 
@@ -28,7 +28,7 @@ std::string Creator::escape(std::string s) {
 
 // Render the html
 void Creator::render(pugi::xml_node node, std::ostringstream &out,
-                     lua::mngr::LuaManager &script) {
+                     lua::mngr::LuaManager &script, std::string filename) {
   if (error) { // Exit if got an error
     return;
   }
@@ -42,7 +42,16 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
 
     // Execute lua
     if (tag == "lua") {
-      auto [success, result] = script.runCode(node.child_value());
+      std::string code = node.child_value();
+
+      // Add newlines based on tag position, which we got from parser, for error
+      // handeling inside lua
+      int luaStart = node.attribute("lua-start").as_int(0);
+      if (luaStart > 0) {
+        code = std::string(luaStart, '\n') + code;
+      }
+
+      auto [success, result] = script.runCode(code, filename);
 
       // Lua code failed
       if (!success) {
@@ -54,7 +63,7 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
         pugi::xml_document frag;
         frag.load_string(("<r>" + result + "</r>").c_str());
         for (auto child : frag.child("r").children())
-          render(child, out, script);
+          render(child, out, script, filename);
       }
 
       // Set error stopper value on error
@@ -73,7 +82,7 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
       } else {
         out << '>';
         for (auto child : node.children())
-          render(child, out, script);
+          render(child, out, script, filename);
         out << "</" << tag << '>';
       }
     }
@@ -95,7 +104,7 @@ std::string Creator::createHTML(const pugi::xml_document &doc, std::string fp,
                                 std::map<std::string, std::string> headers,
                                 std::string body) {
   std::ostringstream out;
-  lua::mngr::LuaManager script(fp,cgi,headers,body);
+  lua::mngr::LuaManager script(fp, cgi, headers, body);
 
   error = false;
   out << "<!DOCTYPE html>"; // Append doctype declaration
@@ -105,7 +114,7 @@ std::string Creator::createHTML(const pugi::xml_document &doc, std::string fp,
 
   // Build for each child in the document
   for (auto child : root.children())
-    render(child, out, script);
+    render(child, out, script, cgi["SCRIPT_NAME"]);
 
   return out.str();
 }

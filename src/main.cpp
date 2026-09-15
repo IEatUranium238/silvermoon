@@ -6,6 +6,15 @@
 #include <map>
 #include <thread>
 
+// UNIX-like specific stuff for unix socks
+#ifndef _WIN32
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
+
+const char *sockPath = "/var/run/silvermoon_fcgi.sock";
+#endif
+
 void worker(FCGX_Request *request) {
   std::map<std::string, std::string> cgi;
   std::map<std::string, std::string> headers;
@@ -79,12 +88,50 @@ void worker(FCGX_Request *request) {
 }
 
 int main() {
+  bool usingUnixSockets = false;
+
+  // Unix socket setting discovery
+  const char *usEnv = std::getenv("SM_USE_UNIXSOCKS");
+  if (usEnv != nullptr) {
+    if (usEnv == "true") {
+#ifdef _WIN32
+      std::cerr << "UNIX sockets are only usable on UNIX-like OSes!"
+                << std::endl;
+      return 1;
+#else
+      usingUnixSockets = true;
+
+      // Create the socket server
+      int server = socket(AF_UNIX, SOCK_STREAM, 0);
+      if (server == -1) {
+        std::cerr << "UNIX socket creation failed" << std::endl;
+        return 1;
+      }
+
+      unlink(sockPath);
+
+      // Some cursed POSIX api stuff
+      struct sockaddr_un addr;
+      std::memset(&addr, 0, sizeof(addr));
+      addr.sun_family = AF_UNIX;
+      std::strncpy(addr.sun_path, sockPath, sizeof(addr.sun_path) - 1);
+
+      // Bind the socket
+      if (bind(server, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
+        std::cerr << "UNIX socket bind failed" << std::endl;
+        close(server);
+        return 1;
+      }
+#endif
+    }
+  }
+
   if (FCGX_Init() != 0) {
     std::cerr << "Failed to initialize FastCGI" << std::endl;
     return 1;
   }
 
-  int socket = FCGX_OpenSocket(":9000", 100);
+  int socket = FCGX_OpenSocket(usingUnixSockets ? sockPath : ":9000", 100);
 
   if (socket < 0) {
     std::cerr << "Failed to open FastCGI socket" << std::endl;
@@ -108,6 +155,13 @@ int main() {
 
     std::thread(worker, request).detach();
   }
+
+#ifndef _WIN32
+  // Remove the unix socket if used
+  if (usingUnixSockets) {
+    unlink(sockPath);
+  }
+#endif
 
   return 0;
 }

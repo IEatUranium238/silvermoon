@@ -12,7 +12,7 @@ private:
   bool error = false;
   std::string escape(std::string s);
   void render(pugi::xml_node node, std::ostringstream &out,
-              lua::mngr::LuaManager &script);
+              lua::mngr::LuaManager &script, std::string filename);
   std::string beautifyHtml(const std::string &inputHtml);
 
 public:

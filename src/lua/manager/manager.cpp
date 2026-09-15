@@ -87,8 +87,8 @@ LuaManager::LuaManager(std::string basePath,
 /// @param code string to execute
 /// @return [Status, Content] - Status (true = ok, false = fail), Content ( ok -
 /// returned content, fail - error)
-std::pair<bool, std::string> LuaManager::runCode(const std::string code) {
-  auto result = lua.script(code, sol::script_pass_on_error);
+std::pair<bool, std::string> LuaManager::runCode(const std::string code, std::string filename) {
+  auto result = lua.script(code, sol::script_pass_on_error, "@" + filename);
 
   // Lua error
   if (!result.valid()) {

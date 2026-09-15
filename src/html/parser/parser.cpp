@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <pugixml.hpp>
@@ -67,6 +68,16 @@ std::string Parser::preprocessCDataTag(std::string xml, std::string tagName) {
 
     std::string openTag = xml.substr(start, tagClose - start + 1);
     bool selfClosing = tagClose > 0 && xml[tagClose - 1] == '/';
+
+    // Add special internal atribute for lua tags for padding in the future
+    if (tagName == "lua") {
+      size_t lineNum = std::count(xml.begin(), xml.begin() + start, '\n');
+      std::string attr = " lua-start=\"" + std::to_string(lineNum) + "\"";
+
+      size_t insertOffset =
+          selfClosing ? openTag.size() - 2 : openTag.size() - 1;
+      openTag.insert(insertOffset, attr);
+    }
 
     result += openTag;
 
