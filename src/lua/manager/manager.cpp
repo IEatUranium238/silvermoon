@@ -9,16 +9,29 @@ namespace lua::mngr {
 // Escape characters for HTML
 std::string escape(std::string s) {
   std::string out;
+  out.reserve(s.size());
 
   for (char c : s) {
-    if (c == '&')
+    switch (c) {
+    case '&':
       out += "&amp;";
-    else if (c == '<')
+      break;
+    case '<':
       out += "&lt;";
-    else if (c == '>')
+      break;
+    case '>':
       out += "&gt;";
-    else
+      break;
+    case '"':
+      out += "&quot;";
+      break;
+    case '\'':
+      out += "&#39;";
+      break;
+    default:
       out += c;
+      break;
+    }
   }
 
   return out;

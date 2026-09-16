@@ -132,13 +132,16 @@ If everything works correctly with code from example, you should see h1 tag with
 
 ## Current Silvermoon's APIs
 
-Currently we only provide request data such as:
+### sm - base API
 
 - sm.request - dictionary for general purpose info such as `REQUEST_METHOD`
 - sm.header - dictionary for http headers (FastCGI headers that start with `HTTP_`, with that part removed from the key itself)
 - sm.body - string for body content
 
 **Key names use SCREAMING_SNAKE_CASE and match names given from FastCGI**
+
+### sm.sec - Security API
+- sm.sec.escape_html(string) - escape html content from string
 
 ## Contributions
 
@@ -147,6 +150,7 @@ Contributions are welcome, create the PR and I will review it.
 I currently don't enforce any coding style but it would be nice if you set your code formatter to LLVM style.
 
 ## Roadmap
+- Move to own HTML parser, allowing "forgiving" parsing (v0.3 goal?)
 - Add safer alternatives for removed functions in sm's API
 - Create API that would allow some form of production use
 - Other platform builds
