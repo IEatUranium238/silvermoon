@@ -130,13 +130,15 @@ pugi::xml_document Parser::readFile(std::string filepath) {
   // Preprocess them
   contents = preprocessTags(contents);
 
-  // Remove DOCTYPE if it exists at the start of the document to avoid problems
-  // with wrap container, we will get it back anyway from formatter if needed
+  // Check whether DOCTYPE exists at the start of the document for atribute
+  bool hasDoctype = false;
+
   size_t first = contents.find_first_not_of(" \t\r\n");
 
   if (first != std::string::npos &&
       (contents.compare(first, 9, "<!DOCTYPE") == 0 ||
        contents.compare(first, 9, "<!doctype") == 0)) {
+    hasDoctype = true;
 
     size_t doctypeEnd = contents.find('>', first);
 
@@ -145,14 +147,17 @@ pugi::xml_document Parser::readFile(std::string filepath) {
     }
   }
 
-  // Wrap the contents so rootless files are valid
-  contents = "<sm-wrap-content>" + contents + "</sm-wrap-content>";
+  // Wrap the contents so they are valid
+  contents = "<sm-wrap-content add-doctype=\"" +
+             std::string(hasDoctype ? "true" : "false") + "\">" + contents +
+             "</sm-wrap-content>";
 
   // Feed to pugixml
   pugi::xml_document doc;
 
   pugi::xml_parse_result result = doc.load_string(
-      contents.c_str(), pugi::parse_default | pugi::parse_comments);
+      contents.c_str(),
+      pugi::parse_default | pugi::parse_comments | pugi::parse_doctype);
 
   if (!result) {
     pugi::xml_document errDoc;
@@ -239,8 +244,9 @@ pugi::xml_document Parser::readFile(std::string filepath) {
         "</body>"
         "</html>";
 
-    errDoc.load_string(errorHtml.c_str(),
-                       pugi::parse_default | pugi::parse_comments);
+    errDoc.load_string(errorHtml.c_str(), pugi::parse_default |
+                                              pugi::parse_comments |
+                                              pugi::parse_doctype);
 
     return errDoc;
   }

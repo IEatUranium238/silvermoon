@@ -75,11 +75,17 @@ void worker(FCGX_Request *request) {
 
   html::prs::Parser parser;
   pugi::xml_document parsedDoc = parser.readFile(script);
+
+  int status = 200;
+  std::string contentType = "text/html";
+
   html::crt::Creator creator;
-  std::string res = creator.createHTML(parsedDoc, script, cgi, headers, body);
+  std::string res = creator.createHTML(parsedDoc, script, cgi, headers, body,
+                                       status, contentType);
 
   // Give the result
-  res = "Status: 200\r\nContent-Type: text/html\r\n\r\n" + res;
+  res = "Status: " + std::to_string(status) +
+        "\r\nContent-Type: " + contentType + "\r\n\r\n" + res;
 
   FCGX_FPrintF(request->out, "%s", res.c_str());
 

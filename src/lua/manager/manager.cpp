@@ -41,7 +41,7 @@ std::string escape(std::string s) {
 LuaManager::LuaManager(std::string basePath,
                        std::map<std::string, std::string> cgi,
                        std::map<std::string, std::string> headers,
-                       std::string body) {
+                       std::string body, int &status, std::string &mime) {
   // Open libraries
   lua.open_libraries(sol::lib::base, sol::lib::coroutine, sol::lib::package,
                      sol::lib::string, sol::lib::os, sol::lib::math,
@@ -102,6 +102,17 @@ LuaManager::LuaManager(std::string basePath,
   lua["sm"]["sec"] = lua.create_table();
   lua["sm"]["sec"]["escape_html"] = [&api](const std::string &str) {
     return api.escapeHTML(str);
+  };
+
+  // Reponse functions
+  lua["sm"]["res"] = lua.create_table();
+
+  lua["sm"]["res"]["set_http_code"] = [&status](const int newCode) {
+    status = newCode;
+  };
+
+  lua["sm"]["res"]["set_mime_type"] = [&mime](const std::string newMime) {
+    mime = newMime;
   };
 }
 

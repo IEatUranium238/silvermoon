@@ -34,4 +34,5 @@ std::string APIs::escapeHTML(std::string s) {
 
   return out;
 }
+
 } // namespace lua::api

@@ -48,7 +48,7 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
 
   switch (node.type()) {
   case pugi::node_pcdata: // Normal text
-    out << escape(node.value());
+    out << node.value();
     break;
   case pugi::node_element: { // HTML element
     std::string tag = node.name();
@@ -105,7 +105,7 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
     out << node.value();
     break;
   case pugi::node_comment: // Add comments
-    out << "<!--" << escape(node.value()) << "-->";
+    out << "<!--" << node.value() << "-->";
     break;
   default:
     break;
@@ -115,15 +115,17 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
 std::string Creator::createHTML(const pugi::xml_document &doc, std::string fp,
                                 std::map<std::string, std::string> cgi,
                                 std::map<std::string, std::string> headers,
-                                std::string body) {
+                                std::string body, int &status,
+                                std::string &mime) {
   std::ostringstream out;
-  lua::mngr::LuaManager script(fp, cgi, headers, body);
+  lua::mngr::LuaManager script(fp, cgi, headers, body, status, mime);
 
   error = false;
-  out << "<!DOCTYPE html>"; // Append doctype declaration
 
   // Get contents from sm-wrap-content wrapper
   pugi::xml_node root = doc.document_element();
+
+  out << (root.attribute("add-doctype").as_bool() ? "<!DOCTYPE html>" : "");
 
   // Build for each child in the document
   for (auto child : root.children())
@@ -131,4 +133,4 @@ std::string Creator::createHTML(const pugi::xml_document &doc, std::string fp,
 
   return out.str();
 }
-} // namespace html::crt
+} // namespace html::crts

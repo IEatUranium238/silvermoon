@@ -3,6 +3,7 @@
 #pragma once
 #include <map>
 #include <sol/sol.hpp>
+#include <sstream>
 #include <string>
 #include <utility>
 #define SOL_ALL_SAFETIES_ON 1
@@ -15,7 +16,8 @@ private:
 
 public:
   LuaManager(std::string basePath, std::map<std::string, std::string> cgi,
-             std::map<std::string, std::string> headers, std::string body);
+             std::map<std::string, std::string> headers, std::string body,
+             int &status, std::string &mime);
   std::pair<bool, std::string> runCode(const std::string code,
                                        std::string filename);
 };
