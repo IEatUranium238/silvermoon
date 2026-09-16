@@ -32,7 +32,7 @@ cmake -S . -B build
 and after that:
 
 ```
-cmake --build build
+cmake --build build --config Release
 ```
 
 **silvermoon binary should appear in build folder if everything goes fine**
