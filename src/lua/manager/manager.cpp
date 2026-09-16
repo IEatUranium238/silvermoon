@@ -1,4 +1,5 @@
 #include "./manager.h"
+#include "../api/api.h"
 #include <iostream>
 #include <map>
 #include <utility>
@@ -78,9 +79,17 @@ LuaManager::LuaManager(std::string basePath,
 
   // API
   lua["sm"] = lua.create_table();
+  lua::api::APIs api;
+
   lua["sm"]["request"] = sol::as_table(cgi);
   lua["sm"]["header"] = sol::as_table(headers);
   lua["sm"]["body"] = body;
+
+  // Security functions
+  lua["sm"]["sec"] = lua.create_table();
+  lua["sm"]["sec"]["escape_html"] = [&api](const std::string &str) {
+    return api.escapeHTML(str);
+  };
 }
 
 /// @brief Execute lua string code
