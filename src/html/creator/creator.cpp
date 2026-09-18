@@ -48,7 +48,7 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
 
   switch (node.type()) {
   case pugi::node_pcdata: // Normal text
-    out << node.value();
+    out << escape(node.value());
     break;
   case pugi::node_element: { // HTML element
     std::string tag = node.name();
