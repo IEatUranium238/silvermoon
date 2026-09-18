@@ -74,7 +74,8 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
       // If result is not empty, parse and render its content
       if (result != "") {
         pugi::xml_document frag;
-        frag.load_string(("<r>" + result + "</r>").c_str());
+        frag.load_string(("<r>" + result + "</r>").c_str(),
+                         pugi::parse_default);
         for (auto child : frag.child("r").children())
           render(child, out, script, filename);
       }
