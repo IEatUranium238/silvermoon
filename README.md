@@ -132,17 +132,19 @@ If everything works correctly with code from example, you should see h1 tag with
 
 ## Current Silvermoon's APIs
 
-### sm - base API
+### sm.req - request API
 
-- sm.request - dictionary for general purpose info such as `REQUEST_METHOD`
-- sm.header - dictionary for http headers (FastCGI headers that start with `HTTP_`, with that part removed from the key itself)
-- sm.body - string for body content
+- sm.req.request - dictionary for general purpose info such as `REQUEST_METHOD`
+- sm.req.header - dictionary for http headers (FastCGI headers that start with `HTTP_`, with that part removed from the key itself)
+- sm.req.body - string for body content
 
 **Key names use SCREAMING_SNAKE_CASE and match names given from FastCGI**
 
 ### sm.sec - Security API
 
-- sm.sec.escape_html(string) - escape html content from string
+- sm.sec.escape_html(string) - escape html content from the string
+- sm.sec.escape_url(string) - escape the string for url
+- sm.sec.unescape_url(string) - revert url escaping for the string
 
 ## sm.res - Response API
 
@@ -161,7 +163,10 @@ I currently don't enforce any coding style but it would be nice if you set your 
 ## Roadmap
 
 - Move to own HTML parser, allowing "forgiving" parsing and general HTML syntax (v0.3 goal?)
+- Cookies API
+- More request, response & security APIs
 - Add safer alternatives for removed functions in sm's API
+- Sessions
 - Create API that would allow some form of production use
 - Other platform builds
 - ???

@@ -38,10 +38,11 @@ std::string escape(std::string s) {
 }
 
 // Create a new lua manager
-LuaManager::LuaManager(
-    std::string basePath, std::map<std::string, std::string> cgi,
-    std::map<std::string, std::string> headers,
-    std::string body, std::map<std::string, std::string> &httpHeaders) {
+LuaManager::LuaManager(std::string basePath,
+                       std::map<std::string, std::string> cgi,
+                       std::map<std::string, std::string> headers,
+                       std::string body,
+                       std::map<std::string, std::string> &httpHeaders) {
   // Open libraries
   lua.open_libraries(sol::lib::base, sol::lib::coroutine, sol::lib::package,
                      sol::lib::string, sol::lib::os, sol::lib::math,
@@ -94,14 +95,24 @@ LuaManager::LuaManager(
   lua["sm"] = lua.create_table();
   lua::api::APIs api;
 
-  lua["sm"]["request"] = sol::as_table(cgi);
-  lua["sm"]["header"] = sol::as_table(headers);
-  lua["sm"]["body"] = body;
+  // Request functions
+  lua["sm"]["req"] = lua.create_table();
+  lua["sm"]["req"]["request"] = sol::as_table(cgi);
+  lua["sm"]["req"]["header"] = sol::as_table(headers);
+  lua["sm"]["req"]["body"] = body;
 
   // Security functions
   lua["sm"]["sec"] = lua.create_table();
   lua["sm"]["sec"]["escape_html"] = [&api](std::string str) {
     return api.escapeHTML(str);
+  };
+
+  lua["sm"]["sec"]["escape_url"] = [&api](std::string str) {
+    return api.escapeURL(str);
+  };
+
+  lua["sm"]["sec"]["unescape_url"] = [&api](std::string str) {
+    return api.unescapeURL(str);
   };
 
   // Reponse functions
@@ -128,7 +139,6 @@ LuaManager::LuaManager(
     httpHeaders["Status"] = "302";
     httpHeaders["Location"] = location;
   };
-
 }
 
 /// @brief Execute lua string code
