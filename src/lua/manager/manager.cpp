@@ -123,6 +123,12 @@ LuaManager::LuaManager(
   lua["sm"]["res"]["delete_header"] = [&httpHeaders](std::string headerName) {
     httpHeaders.erase(headerName);
   };
+
+  lua["sm"]["res"]["redirect"] = [&httpHeaders](std::string location) {
+    httpHeaders["Status"] = "302";
+    httpHeaders["Location"] = location;
+  };
+
 }
 
 /// @brief Execute lua string code

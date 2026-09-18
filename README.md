@@ -150,6 +150,7 @@ If everything works correctly with code from example, you should see h1 tag with
 - sm.res.set_mime_type(string) - set response mime type to a string (ex. "application/json" - for json)
 - sm.res.set_header(name, content) - set http header to some content
 - sm.res.delete_header(name) - delete http header from response
+- sm.res.redirect(url) - redirect user to some url
 
 ## Contributions
 
