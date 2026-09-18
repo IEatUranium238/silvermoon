@@ -2,9 +2,9 @@
 #define CREATOR_H
 #pragma once
 #include "../../lua/manager/manager.h"
+#include <map>
 #include <pugixml.hpp>
 #include <string>
-#include <map>
 
 namespace html::crt {
 class Creator {
@@ -13,13 +13,13 @@ private:
   std::string escape(std::string s);
   void render(pugi::xml_node node, std::ostringstream &out,
               lua::mngr::LuaManager &script, std::string filename);
-  std::string beautifyHtml(const std::string &inputHtml);
 
 public:
   std::string createHTML(const pugi::xml_document &doc, std::string fp,
                          std::map<std::string, std::string> cgi,
                          std::map<std::string, std::string> headers,
-                         std::string body);
+                         std::string body,
+                         std::map<std::string, std::string> &httpHeaders);
 };
 } // namespace html::crt
 

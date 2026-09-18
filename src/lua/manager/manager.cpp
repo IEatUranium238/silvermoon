@@ -1,4 +1,5 @@
 #include "./manager.h"
+#include "../api/api.h"
 #include <iostream>
 #include <map>
 #include <utility>
@@ -8,16 +9,29 @@ namespace lua::mngr {
 // Escape characters for HTML
 std::string escape(std::string s) {
   std::string out;
+  out.reserve(s.size());
 
   for (char c : s) {
-    if (c == '&')
+    switch (c) {
+    case '&':
       out += "&amp;";
-    else if (c == '<')
+      break;
+    case '<':
       out += "&lt;";
-    else if (c == '>')
+      break;
+    case '>':
       out += "&gt;";
-    else
+      break;
+    case '"':
+      out += "&quot;";
+      break;
+    case '\'':
+      out += "&#39;";
+      break;
+    default:
       out += c;
+      break;
+    }
   }
 
   return out;
@@ -27,7 +41,8 @@ std::string escape(std::string s) {
 LuaManager::LuaManager(std::string basePath,
                        std::map<std::string, std::string> cgi,
                        std::map<std::string, std::string> headers,
-                       std::string body) {
+                       std::string body,
+                       std::map<std::string, std::string> &httpHeaders) {
   // Open libraries
   lua.open_libraries(sol::lib::base, sol::lib::coroutine, sol::lib::package,
                      sol::lib::string, sol::lib::os, sol::lib::math,
@@ -78,16 +93,60 @@ LuaManager::LuaManager(std::string basePath,
 
   // API
   lua["sm"] = lua.create_table();
-  lua["sm"]["request"] = sol::as_table(cgi);
-  lua["sm"]["header"] = sol::as_table(headers);
-  lua["sm"]["body"] = body;
+  lua::api::APIs api;
+
+  // Request functions
+  lua["sm"]["req"] = lua.create_table();
+  lua["sm"]["req"]["request"] = sol::as_table(cgi);
+  lua["sm"]["req"]["header"] = sol::as_table(headers);
+  lua["sm"]["req"]["body"] = body;
+
+  // Security functions
+  lua["sm"]["sec"] = lua.create_table();
+  lua["sm"]["sec"]["escape_html"] = [&api](std::string str) {
+    return api.escapeHTML(str);
+  };
+
+  lua["sm"]["sec"]["escape_url"] = [&api](std::string str) {
+    return api.escapeURL(str);
+  };
+
+  lua["sm"]["sec"]["unescape_url"] = [&api](std::string str) {
+    return api.unescapeURL(str);
+  };
+
+  // Reponse functions
+  lua["sm"]["res"] = lua.create_table();
+
+  lua["sm"]["res"]["set_http_code"] = [&httpHeaders](int newCode) {
+    httpHeaders["Status"] = std::to_string(newCode);
+  };
+
+  lua["sm"]["res"]["set_mime_type"] = [&httpHeaders](std::string newMime) {
+    httpHeaders["Content-Type"] = newMime;
+  };
+
+  lua["sm"]["res"]["set_header"] = [&httpHeaders](std::string headerName,
+                                                  std::string headerContent) {
+    httpHeaders[headerName] = headerContent;
+  };
+
+  lua["sm"]["res"]["delete_header"] = [&httpHeaders](std::string headerName) {
+    httpHeaders.erase(headerName);
+  };
+
+  lua["sm"]["res"]["redirect"] = [&httpHeaders](std::string location) {
+    httpHeaders["Status"] = "302";
+    httpHeaders["Location"] = location;
+  };
 }
 
 /// @brief Execute lua string code
 /// @param code string to execute
 /// @return [Status, Content] - Status (true = ok, false = fail), Content ( ok -
 /// returned content, fail - error)
-std::pair<bool, std::string> LuaManager::runCode(const std::string code, std::string filename) {
+std::pair<bool, std::string> LuaManager::runCode(const std::string code,
+                                                 std::string filename) {
   auto result = lua.script(code, sol::script_pass_on_error, "@" + filename);
 
   // Lua error

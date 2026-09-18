@@ -11,16 +11,29 @@ namespace html::crt {
 // Escape data for html
 std::string Creator::escape(std::string s) {
   std::string out;
+  out.reserve(s.size());
 
   for (char c : s) {
-    if (c == '&')
+    switch (c) {
+    case '&':
       out += "&amp;";
-    else if (c == '<')
+      break;
+    case '<':
       out += "&lt;";
-    else if (c == '>')
+      break;
+    case '>':
       out += "&gt;";
-    else
+      break;
+    case '"':
+      out += "&quot;";
+      break;
+    case '\'':
+      out += "&#39;";
+      break;
+    default:
       out += c;
+      break;
+    }
   }
 
   return out;
@@ -61,7 +74,8 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
       // If result is not empty, parse and render its content
       if (result != "") {
         pugi::xml_document frag;
-        frag.load_string(("<r>" + result + "</r>").c_str());
+        frag.load_string(("<r>" + result + "</r>").c_str(),
+                         pugi::parse_default);
         for (auto child : frag.child("r").children())
           render(child, out, script, filename);
       }
@@ -92,25 +106,28 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
     out << node.value();
     break;
   case pugi::node_comment: // Add comments
-    out << "<!--" << escape(node.value()) << "-->";
+    out << "<!--" << node.value() << "-->";
     break;
   default:
     break;
   }
 }
 
-std::string Creator::createHTML(const pugi::xml_document &doc, std::string fp,
-                                std::map<std::string, std::string> cgi,
-                                std::map<std::string, std::string> headers,
-                                std::string body) {
+std::string
+Creator::createHTML(const pugi::xml_document &doc, std::string fp,
+                    std::map<std::string, std::string> cgi,
+                    std::map<std::string, std::string> headers,
+                    std::string body,
+                    std::map<std::string, std::string> &httpHeaders) {
   std::ostringstream out;
-  lua::mngr::LuaManager script(fp, cgi, headers, body);
+  lua::mngr::LuaManager script(fp, cgi, headers, body, httpHeaders);
 
   error = false;
-  out << "<!DOCTYPE html>"; // Append doctype declaration
 
   // Get contents from sm-wrap-content wrapper
   pugi::xml_node root = doc.document_element();
+
+  out << (root.attribute("add-doctype").as_bool() ? "<!DOCTYPE html>" : "");
 
   // Build for each child in the document
   for (auto child : root.children())
