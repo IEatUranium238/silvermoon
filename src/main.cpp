@@ -63,7 +63,8 @@ void worker(FCGX_Request *request) {
   std::filesystem::path checkpath = script;
 
   if (!std::filesystem::exists(checkpath)) {
-    std::string res = "Status: 404\r\nContent-Type: text/html\r\n\r\n";
+    std::string res = "Status: 404\r\nContent-Type: text/html\r\n";
+    res += "\r\n";
     FCGX_FPrintF(request->out, "%s", res.c_str());
 
     FCGX_Finish_r(request);
@@ -76,16 +77,25 @@ void worker(FCGX_Request *request) {
   html::prs::Parser parser;
   pugi::xml_document parsedDoc = parser.readFile(script);
 
-  int status = 200;
-  std::string contentType = "text/html";
-
+  std::map<std::string, std::string> resHeaders;
   html::crt::Creator creator;
-  std::string res = creator.createHTML(parsedDoc, script, cgi, headers, body,
-                                       status, contentType);
+
+  resHeaders["Status"] = "200";
+  resHeaders["Content-Type"] = "text/html";
+
+  std::string res =
+      creator.createHTML(parsedDoc, script, cgi, resHeaders, body, resHeaders);
+
+  std::string headerString = "";
+
+  // Create header string
+
+  for (auto &[k, v] : resHeaders) {
+    headerString += k + ": " + v + "\r\n";
+  }
 
   // Give the result
-  res = "Status: " + std::to_string(status) +
-        "\r\nContent-Type: " + contentType + "\r\n\r\n" + res;
+  res = headerString + "\r\n" + res;
 
   FCGX_FPrintF(request->out, "%s", res.c_str());
 

@@ -130,7 +130,8 @@ pugi::xml_document Parser::readFile(std::string filepath) {
   // Preprocess them
   contents = preprocessTags(contents);
 
-  // Check whether DOCTYPE exists at the start of the document for atribute
+  // Check whether DOCTYPE exists at the start of the document for atribute and
+  // remove it
   bool hasDoctype = false;
 
   size_t first = contents.find_first_not_of(" \t\r\n");

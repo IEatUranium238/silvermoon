@@ -17,7 +17,7 @@ private:
 public:
   LuaManager(std::string basePath, std::map<std::string, std::string> cgi,
              std::map<std::string, std::string> headers, std::string body,
-             int &status, std::string &mime);
+             std::map<std::string, std::string> &httpHeaders);
   std::pair<bool, std::string> runCode(const std::string code,
                                        std::string filename);
 };

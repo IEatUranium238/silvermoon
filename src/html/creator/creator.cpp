@@ -112,13 +112,14 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
   }
 }
 
-std::string Creator::createHTML(const pugi::xml_document &doc, std::string fp,
-                                std::map<std::string, std::string> cgi,
-                                std::map<std::string, std::string> headers,
-                                std::string body, int &status,
-                                std::string &mime) {
+std::string
+Creator::createHTML(const pugi::xml_document &doc, std::string fp,
+                    std::map<std::string, std::string> cgi,
+                    std::map<std::string, std::string> headers,
+                    std::string body,
+                    std::map<std::string, std::string> &httpHeaders) {
   std::ostringstream out;
-  lua::mngr::LuaManager script(fp, cgi, headers, body, status, mime);
+  lua::mngr::LuaManager script(fp, cgi, headers, body, httpHeaders);
 
   error = false;
 
@@ -133,4 +134,4 @@ std::string Creator::createHTML(const pugi::xml_document &doc, std::string fp,
 
   return out.str();
 }
-} // namespace html::crts
+} // namespace html::crt

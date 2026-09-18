@@ -144,6 +144,13 @@ If everything works correctly with code from example, you should see h1 tag with
 
 - sm.sec.escape_html(string) - escape html content from string
 
+## sm.res - Response API
+
+- sm.res.set_http_code(code) - set response http code (ex. 404 - for not found)
+- sm.res.set_mime_type(string) - set response mime type to a string (ex. "application/json" - for json)
+- sm.res.set_header(name, content) - set http header to some content
+- sm.res.delete_header(name) - delete http header from response
+
 ## Contributions
 
 Contributions are welcome, create the PR and I will review it.

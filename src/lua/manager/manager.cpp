@@ -38,10 +38,10 @@ std::string escape(std::string s) {
 }
 
 // Create a new lua manager
-LuaManager::LuaManager(std::string basePath,
-                       std::map<std::string, std::string> cgi,
-                       std::map<std::string, std::string> headers,
-                       std::string body, int &status, std::string &mime) {
+LuaManager::LuaManager(
+    std::string basePath, std::map<std::string, std::string> cgi,
+    std::map<std::string, std::string> headers,
+    std::string body, std::map<std::string, std::string> &httpHeaders) {
   // Open libraries
   lua.open_libraries(sol::lib::base, sol::lib::coroutine, sol::lib::package,
                      sol::lib::string, sol::lib::os, sol::lib::math,
@@ -100,19 +100,28 @@ LuaManager::LuaManager(std::string basePath,
 
   // Security functions
   lua["sm"]["sec"] = lua.create_table();
-  lua["sm"]["sec"]["escape_html"] = [&api](const std::string &str) {
+  lua["sm"]["sec"]["escape_html"] = [&api](std::string str) {
     return api.escapeHTML(str);
   };
 
   // Reponse functions
   lua["sm"]["res"] = lua.create_table();
 
-  lua["sm"]["res"]["set_http_code"] = [&status](const int newCode) {
-    status = newCode;
+  lua["sm"]["res"]["set_http_code"] = [&httpHeaders](int newCode) {
+    httpHeaders["Status"] = std::to_string(newCode);
   };
 
-  lua["sm"]["res"]["set_mime_type"] = [&mime](const std::string newMime) {
-    mime = newMime;
+  lua["sm"]["res"]["set_mime_type"] = [&httpHeaders](std::string newMime) {
+    httpHeaders["Content-Type"] = newMime;
+  };
+
+  lua["sm"]["res"]["set_header"] = [&httpHeaders](std::string headerName,
+                                                  std::string headerContent) {
+    httpHeaders[headerName] = headerContent;
+  };
+
+  lua["sm"]["res"]["delete_header"] = [&httpHeaders](std::string headerName) {
+    httpHeaders.erase(headerName);
   };
 }
 
