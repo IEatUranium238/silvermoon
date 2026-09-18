@@ -146,7 +146,7 @@ If everything works correctly with code from example, you should see h1 tag with
 - sm.sec.escape_url(string) - escape the string for url
 - sm.sec.unescape_url(string) - revert url escaping for the string
 
-## sm.res - Response API
+### sm.res - Response API
 
 - sm.res.set_http_code(code) - set response http code (ex. 404 - for not found)
 - sm.res.set_mime_type(string) - set response mime type to a string (ex. "application/json" - for json)
