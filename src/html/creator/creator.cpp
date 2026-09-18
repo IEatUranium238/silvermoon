@@ -48,7 +48,7 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
 
   switch (node.type()) {
   case pugi::node_pcdata: // Normal text
-    out << escape(node.value());
+    out << node.value();
     break;
   case pugi::node_element: { // HTML element
     std::string tag = node.name();
@@ -75,7 +75,7 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
       if (result != "") {
         pugi::xml_document frag;
         frag.load_string(("<r>" + result + "</r>").c_str(),
-                         pugi::parse_default);
+                         pugi::parse_default || ~pugi::parse_escapes);
         for (auto child : frag.child("r").children())
           render(child, out, script, filename);
       }

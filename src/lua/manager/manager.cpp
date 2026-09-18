@@ -1,5 +1,6 @@
 #include "./manager.h"
 #include "../api/api.h"
+#include <filesystem>
 #include <iostream>
 #include <map>
 #include <utility>
@@ -64,9 +65,14 @@ LuaManager::LuaManager(std::string basePath,
 
   // Add current file's path to module path
   if (!basePath.empty()) {
+    std::filesystem::path filePath(basePath);
+    std::filesystem::path parentPath = filePath.parent_path();
+
     std::string existingPath = lua["package"]["path"];
-    std::string luaPath = basePath + "/?.lua;" + basePath + "/?/init.lua";
-    lua["package"]["path"] = luaPath;
+    std::string luaPath =
+        parentPath.string() + "/?.lua;" + parentPath.string() + "/?/init.lua";
+
+    lua["package"]["path"] = luaPath + ";" + existingPath;
   }
 
   // Override print to act as echo
