@@ -132,27 +132,30 @@ If everything works correctly with code from example, you should see h1 tag with
 
 ## Current Silvermoon's APIs
 
-### sm.req - request API
+### Request APIs
 
-- sm.req.request - dictionary for general purpose info such as `REQUEST_METHOD`
-- sm.req.header - dictionary for http headers (FastCGI headers that start with `HTTP_`, with that part removed from the key itself)
-- sm.req.body - string for body content
+- sm.request - dictionary for general purpose info such as `REQUEST_METHOD`
+- sm.header - dictionary for http headers (FastCGI headers that start with `HTTP_`, with that part removed from the key itself)
+- sm.body - string for body content
 
 **Key names use SCREAMING_SNAKE_CASE and match names given from FastCGI**
 
-### sm.sec - Security API
+### Security API
 
-- sm.sec.escape_html(string) - escape html content from the string
-- sm.sec.escape_url(string) - escape the string for url
-- sm.sec.unescape_url(string) - revert url escaping for the string
+- sm.escape_html(string) - escape html content from the string
+- sm.unescape_html(string) - revert html escaping for the string
+- sm.escape_url(string) - escape the string for url
+- sm.unescape_url(string) - revert url escaping for the string
 
-### sm.res - Response API
+### Response API
 
-- sm.res.set_http_code(code) - set response http code (ex. 404 - for not found)
-- sm.res.set_mime_type(string) - set response mime type to a string (ex. "application/json" - for json)
-- sm.res.set_header(name, content) - set http header to some content
-- sm.res.delete_header(name) - delete http header from response
-- sm.res.redirect(url) - redirect user to some url
+- sm.set_http_code(code) - set response http code (ex. 404 - for not found)
+- sm.set_mime_type(string) - set response mime type to a string (ex. "application/json" - for json)
+- sm.set_header(name, content) - set http header to some content
+- sm.delete_header(name) - delete http header from response
+- sm.redirect(url) - redirect user to some url
+- sm.halt() - stops rendering of the page
+- sm.set_page_content(string) - replaces all of page content with string, halts rendering after.
 
 ## Contributions
 

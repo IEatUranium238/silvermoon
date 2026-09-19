@@ -120,7 +120,7 @@ Creator::createHTML(const pugi::xml_document &doc, std::string fp,
                     std::string body,
                     std::map<std::string, std::string> &httpHeaders) {
   std::ostringstream out;
-  lua::mngr::LuaManager script(fp, cgi, headers, body, httpHeaders);
+  lua::mngr::LuaManager script(fp, cgi, headers, body, httpHeaders, error, out);
 
   error = false;
 

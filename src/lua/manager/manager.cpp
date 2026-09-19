@@ -43,7 +43,8 @@ LuaManager::LuaManager(std::string basePath,
                        std::map<std::string, std::string> cgi,
                        std::map<std::string, std::string> headers,
                        std::string body,
-                       std::map<std::string, std::string> &httpHeaders) {
+                       std::map<std::string, std::string> &httpHeaders,
+                       bool &error, std::ostringstream &out) {
   // Open libraries
   lua.open_libraries(sol::lib::base, sol::lib::coroutine, sol::lib::package,
                      sol::lib::string, sol::lib::os, sol::lib::math,
@@ -102,48 +103,55 @@ LuaManager::LuaManager(std::string basePath,
   lua::api::APIs api;
 
   // Request functions
-  lua["sm"]["req"] = lua.create_table();
-  lua["sm"]["req"]["request"] = sol::as_table(cgi);
-  lua["sm"]["req"]["header"] = sol::as_table(headers);
-  lua["sm"]["req"]["body"] = body;
+  lua["sm"]["request"] = sol::as_table(cgi);
+  lua["sm"]["header"] = sol::as_table(headers);
+  lua["sm"]["body"] = body;
 
   // Security functions
-  lua["sm"]["sec"] = lua.create_table();
-  lua["sm"]["sec"]["escape_html"] = [&api](std::string str) {
+  lua["sm"]["escape_html"] = [&api](std::string str) {
     return api.escapeHTML(str);
   };
+  lua["sm"]["unescape_html"] = [&api](std::string str) {
+    return api.unescapeHTML(str);
+  };
 
-  lua["sm"]["sec"]["escape_url"] = [&api](std::string str) {
+  lua["sm"]["escape_url"] = [&api](std::string str) {
     return api.escapeURL(str);
   };
 
-  lua["sm"]["sec"]["unescape_url"] = [&api](std::string str) {
+  lua["sm"]["unescape_url"] = [&api](std::string str) {
     return api.unescapeURL(str);
   };
 
   // Reponse functions
-  lua["sm"]["res"] = lua.create_table();
-
-  lua["sm"]["res"]["set_http_code"] = [&httpHeaders](int newCode) {
+  lua["sm"]["set_http_code"] = [&httpHeaders](int newCode) {
     httpHeaders["Status"] = std::to_string(newCode);
   };
 
-  lua["sm"]["res"]["set_mime_type"] = [&httpHeaders](std::string newMime) {
+  lua["sm"]["set_mime_type"] = [&httpHeaders](std::string newMime) {
     httpHeaders["Content-Type"] = newMime;
   };
 
-  lua["sm"]["res"]["set_header"] = [&httpHeaders](std::string headerName,
-                                                  std::string headerContent) {
+  lua["sm"]["set_header"] = [&httpHeaders](std::string headerName,
+                                           std::string headerContent) {
     httpHeaders[headerName] = headerContent;
   };
 
-  lua["sm"]["res"]["delete_header"] = [&httpHeaders](std::string headerName) {
+  lua["sm"]["delete_header"] = [&httpHeaders](std::string headerName) {
     httpHeaders.erase(headerName);
   };
 
-  lua["sm"]["res"]["redirect"] = [&httpHeaders](std::string location) {
+  lua["sm"]["redirect"] = [&httpHeaders](std::string location) {
     httpHeaders["Status"] = "302";
     httpHeaders["Location"] = location;
+  };
+
+  lua["sm"]["halt"] = [&error]() { error = true; };
+  lua["sm"]["set_page_content"] = [&out, &error](std::string newContent) {
+    out.str("");
+    out.clear();
+    out << newContent;
+    error = true;
   };
 }
 

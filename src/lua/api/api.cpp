@@ -38,6 +38,36 @@ std::string APIs::escapeHTML(std::string s) {
   return out;
 }
 
+// Unescape HTML
+std::string APIs::unescapeHTML(std::string s) {
+  std::string out;
+  out.reserve(s.size());
+
+  for (size_t i = 0; i < s.size(); ++i) {
+    if (s.compare(i, 5, "&amp;") == 0) {
+      out += '&';
+      i += 4;
+    } else if (s.compare(i, 4, "&lt;") == 0) {
+      out += '<';
+      i += 3;
+    } else if (s.compare(i, 4, "&gt;") == 0) {
+      out += '>';
+      i += 3;
+    } else if (s.compare(i, 6, "&quot;") == 0) {
+      out += '"';
+      i += 5;
+    } else if (s.compare(i, 5, "&#39;") == 0) {
+      out += '\'';
+      i += 4;
+    } else {
+      out += s[i];
+    }
+  }
+
+  return out;
+}
+
+// Escape url
 std::string APIs::escapeURL(std::string input) {
   std::ostringstream out;
   out << std::hex << std::uppercase << std::setfill('0');
@@ -55,6 +85,7 @@ std::string APIs::escapeURL(std::string input) {
   return out.str();
 }
 
+// Unescape url
 std::string APIs::unescapeURL(std::string input) {
   std::string out;
   out.reserve(input.size());
