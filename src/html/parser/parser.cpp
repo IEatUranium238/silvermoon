@@ -32,14 +32,39 @@ std::string Parser::escapeCData(std::string input) {
 // Process tag which content's should be wrapper in the CDATA
 std::string Parser::preprocessCDataTag(std::string xml, std::string tagName) {
   std::string result;
+  result.reserve(xml.size());
+
   size_t pos = 0;
 
   std::string openPrefix = "<" + tagName;
   std::string closeTag = "</" + tagName + ">";
+  std::string cdataStart = "<![CDATA[";
 
-  while (true) {
+  while (pos < xml.size()) {
+    // Find the next target tag
     size_t start = xml.find(openPrefix, pos);
+    size_t existingCData = xml.find(cdataStart, pos);
 
+    // If a CDATA is found, copy it raw
+    if (existingCData != std::string::npos &&
+        (start == std::string::npos || existingCData < start)) {
+
+      size_t cdataEnd = xml.find("]]>", existingCData + cdataStart.size());
+
+      if (cdataEnd == std::string::npos) {
+        // Leave malformed cdata alone
+        result += xml.substr(pos);
+        break;
+      }
+
+      cdataEnd += 3;
+
+      result += xml.substr(pos, cdataEnd - pos);
+      pos = cdataEnd;
+      continue;
+    }
+
+    // No more target tags.
     if (start == std::string::npos) {
       result += xml.substr(pos);
       break;
@@ -49,7 +74,9 @@ std::string Parser::preprocessCDataTag(std::string xml, std::string tagName) {
 
     if (afterName < xml.size()) {
       char c = xml[afterName];
-      if (std::isalnum(static_cast<unsigned char>(c)) || c == '-' || c == '_') {
+
+      if (std::isalnum(static_cast<unsigned char>(c)) || c == '-' || c == '_' ||
+          c == ':') {
         result += xml.substr(pos, afterName - pos);
         pos = afterName;
         continue;
@@ -67,9 +94,9 @@ std::string Parser::preprocessCDataTag(std::string xml, std::string tagName) {
     result += xml.substr(pos, start - pos);
 
     std::string openTag = xml.substr(start, tagClose - start + 1);
-    bool selfClosing = tagClose > 0 && xml[tagClose - 1] == '/';
+    bool selfClosing = tagClose > start && xml[tagClose - 1] == '/';
 
-    // Add special internal atribute for lua tags for padding in the future
+    // Add internal atribute for lua tags for padding in the future
     if (tagName == "lua") {
       size_t lineNum = std::count(xml.begin(), xml.begin() + start, '\n');
       std::string attr = " lua-start=\"" + std::to_string(lineNum) + "\"";

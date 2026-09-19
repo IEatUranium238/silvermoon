@@ -162,7 +162,6 @@ I currently don't enforce any coding style but it would be nice if you set your 
 
 ## Roadmap
 
-- Move to own HTML parser, allowing "forgiving" parsing and general HTML syntax (v0.3 goal?)
 - Cookies API
 - More request, response & security APIs
 - Add safer alternatives for removed functions in sm's API
