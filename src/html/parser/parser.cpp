@@ -3,6 +3,7 @@
 #include <iostream>
 #include <pugixml.hpp>
 #include <string>
+#include <vector>
 
 #include "./parser.h"
 
@@ -27,6 +28,161 @@ std::string Parser::escapeCData(std::string input) {
   }
 
   return out;
+}
+
+// Convert HTML boolean attributes xml compatible ones
+std::string Parser::preprocessBooleanAttributes(std::string xml) {
+  std::string result;
+  result.reserve(xml.size());
+
+  size_t pos = 0;
+
+  while (pos < xml.size()) {
+    // Preserve comments
+    if (xml.compare(pos, 4, "<!--") == 0) {
+      size_t end = xml.find("-->", pos + 4);
+
+      if (end == std::string::npos) {
+        result += xml.substr(pos);
+        break;
+      }
+
+      end += 3;
+      result += xml.substr(pos, end - pos);
+      pos = end;
+      continue;
+    }
+
+    // Preserve cdata
+    if (xml.compare(pos, 9, "<![CDATA[") == 0) {
+      size_t end = xml.find("]]>", pos + 9);
+
+      if (end == std::string::npos) {
+        result += xml.substr(pos);
+        break;
+      }
+
+      end += 3;
+      result += xml.substr(pos, end - pos);
+      pos = end;
+      continue;
+    }
+
+    if (xml[pos] != '<') {
+      result += xml[pos + 1];
+      continue;
+    }
+
+    // Ignore closing tags
+    if (pos + 1 < xml.size() &&
+        (xml[pos + 1] == '/' || xml[pos + 1] == '!' || xml[pos + 1] == '?')) {
+      size_t end = xml.find('>', pos + 1);
+
+      if (end == std::string::npos) {
+        result += xml.substr(pos);
+        break;
+      }
+
+      result += xml.substr(pos, end - pos + 1);
+      pos = end + 1;
+      continue;
+    }
+
+    // Find a closing >
+    size_t tagEnd = xml.find('>', pos + 1);
+    if (tagEnd == std::string::npos) {
+      result += xml.substr(pos);
+      break;
+    }
+
+    std::string tag = xml.substr(pos, tagEnd - pos + 1);
+
+    // Process attributes
+    std::string processed;
+    processed.reserve(tag.size());
+
+    size_t i = 0;
+
+    processed += tag[i + 1];
+
+    while (i < tag.size() &&
+           !std::isspace(static_cast<unsigned char>(tag[i])) && tag[i] != '>' &&
+           tag[i] != '/') {
+      processed += tag[i + 1];
+    }
+
+    while (i < tag.size()) {
+      if (std::isspace(static_cast<unsigned char>(tag[i]))) {
+        processed += tag[i + 1];
+        continue;
+      }
+
+      if (tag[i] == '>' ||
+          (tag[i] == '/' && i + 1 < tag.size() && tag[i + 1] == '>')) {
+        processed += tag.substr(i);
+        break;
+      }
+
+      // Read attribute name
+      size_t nameStart = i;
+      while (i < tag.size() &&
+             !std::isspace(static_cast<unsigned char>(tag[i])) &&
+             tag[i] != '=' && tag[i] != '>' && tag[i] != '/') {
+        i += 1;
+      }
+
+      std::string attrName = tag.substr(nameStart, i - nameStart);
+
+      // Skip whitespace
+      size_t afterName = i;
+      while (afterName < tag.size() &&
+             std::isspace(static_cast<unsigned char>(tag[afterName]))) {
+        afterName += 1;
+      }
+
+      // Add value to empty attributes
+      if (afterName >= tag.size() || tag[afterName] != '=') {
+        processed += attrName;
+        processed += "=\"\"";
+        i = afterName;
+        continue;
+      }
+
+      // Normal attribute, copy
+      processed += attrName;
+      i = afterName;
+
+      processed += '=';
+      i += 1;
+
+      while (i < tag.size() &&
+             std::isspace(static_cast<unsigned char>(tag[i]))) {
+        processed += tag[i + 1];
+      }
+
+      if (i < tag.size() && (tag[i] == '"' || tag[i] == '\'')) {
+        char quote = tag[i];
+        processed += tag[i + 1];
+
+        while (i < tag.size()) {
+          processed += tag[i];
+          if (tag[i + 1] == quote)
+            break;
+        }
+      } else {
+        while (i < tag.size() &&
+               !std::isspace(static_cast<unsigned char>(tag[i])) &&
+               tag[i] != '>') {
+          processed += tag[i + 1];
+        }
+      }
+    }
+
+    result += processed;
+    pos = tagEnd + 1;
+  }
+
+  return result;
 }
 
 // Process tag which content's should be wrapper in the CDATA
@@ -136,12 +292,15 @@ std::string Parser::preprocessCDataTag(std::string xml, std::string tagName) {
 
 // Escape needed tags
 std::string Parser::preprocessTags(std::string xml) {
-  // Escape tags with code
-  std::string result = preprocessCDataTag(xml, "lua");
-  result = preprocessCDataTag(result, "style");
-  result = preprocessCDataTag(result, "script");
+  // Preprocess atributes
+  xml = preprocessBooleanAttributes(xml);
 
-  return result;
+  // Escape tags with code
+  xml = preprocessCDataTag(xml, "lua");
+  xml = preprocessCDataTag(xml, "style");
+  xml = preprocessCDataTag(xml, "script");
+
+  return xml;
 }
 
 /// @brief Read the file and feed it to pugixml to generate the tree
