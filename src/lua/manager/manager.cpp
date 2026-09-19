@@ -148,10 +148,10 @@ LuaManager::LuaManager(std::string basePath,
 
   lua["sm"]["halt"] = [&error]() { error = true; };
   lua["sm"]["set_page_content"] = [&out, &error](std::string newContent) {
+    error = true;
     out.str("");
     out.clear();
     out << newContent;
-    error = true;
   };
 }
 
