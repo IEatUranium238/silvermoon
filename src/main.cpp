@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <iostream>
 #include <map>
+#include <string_view>
 #include <thread>
 
 // UNIX-like specific stuff for unix socks
@@ -18,6 +19,7 @@ const char *sockPath = "/var/run/silvermoon_fcgi.sock";
 void worker(FCGX_Request *request) {
   std::map<std::string, std::string> cgi;
   std::map<std::string, std::string> headers;
+  std::map<std::string, std::variant<std::string, double, bool>> cookies;
   std::string body;
 
   // CGI variables
@@ -34,13 +36,52 @@ void worker(FCGX_Request *request) {
 
     // HTTP headers start with HTTP_
     if (key.rfind("HTTP_", 0) == 0) {
-      std::cerr << key << " " << value << std::endl;
       std::string headerName = key.substr(5);
       headers[headerName] = value;
       continue;
     }
 
     cgi[key] = value;
+  }
+
+  // Parse cookies
+  if (auto it = headers.find("COOKIE"); it != headers.end()) {
+    std::string_view cookieHeader = it->second;
+
+    while (!cookieHeader.empty()) {
+      // Skip whitespace
+      cookieHeader.remove_prefix(std::min(
+          cookieHeader.find_first_not_of(" ;\t"), cookieHeader.size()));
+
+      if (cookieHeader.empty()) {
+        break;
+      }
+
+      size_t end = cookieHeader.find(';');
+      std::string_view cookie = cookieHeader.substr(0, end);
+
+      size_t equals = cookie.find('=');
+      if (equals != std::string_view::npos) {
+        std::string name(cookie.substr(0, equals));
+        std::string value(cookie.substr(equals + 1));
+
+        // Trim whitespace
+        size_t nameStart = name.find_first_not_of(" \t");
+        size_t nameEnd = name.find_last_not_of(" \t");
+
+        if (nameStart != std::string::npos) {
+          name = name.substr(nameStart, nameEnd - nameStart + 1);
+        }
+
+        cookies[name] = value;
+      }
+
+      if (end == std::string_view::npos){
+        break;
+      }
+
+      cookieHeader.remove_prefix(end + 1);
+    }
   }
 
   // Read body
@@ -85,7 +126,7 @@ void worker(FCGX_Request *request) {
   resHeaders["Content-Type"] = "text/html";
 
   std::string res =
-      creator.createHTML(parsedDoc, script, cgi, headers, body, resHeaders);
+      creator.createHTML(parsedDoc, script, cgi, headers, body, resHeaders, cookies);
 
   std::string headerString = "";
 

@@ -157,6 +157,9 @@ If everything works correctly with code from example, you should see h1 tag with
 - sm.halt() - stops rendering of the page
 - sm.set_page_content(string) - replaces all of page content with string, halts rendering after.
 
+### Cookies API
+- sm.cookies - dictionary of cookies, **Key names match cookie names**
+
 ## Contributions
 
 Contributions are welcome, create the PR and I will review it.
@@ -167,6 +170,7 @@ I currently don't enforce any coding style but it would be nice if you set your 
 
 - Cookies API
 - More request, response & security APIs
+- Migrate to use new c++ 23 features.
 - Sessions
 - Create API that would allow some form of production use
 - Other platform builds

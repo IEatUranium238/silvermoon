@@ -15,11 +15,12 @@ private:
               lua::mngr::LuaManager &script, std::string filename);
 
 public:
-  std::string createHTML(const pugi::xml_document &doc, std::string fp,
-                         std::map<std::string, std::string> cgi,
-                         std::map<std::string, std::string> headers,
-                         std::string body,
-                         std::map<std::string, std::string> &httpHeaders);
+  std::string createHTML(
+      const pugi::xml_document &doc, std::string fp,
+      std::map<std::string, std::string> cgi,
+      std::map<std::string, std::string> headers, std::string body,
+      std::map<std::string, std::string> &httpHeaders,
+      std::map<std::string, std::variant<std::string, double, bool>> cookies);
 };
 } // namespace html::crt
 

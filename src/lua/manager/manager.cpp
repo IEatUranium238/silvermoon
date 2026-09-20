@@ -39,12 +39,12 @@ std::string escape(std::string s) {
 }
 
 // Create a new lua manager
-LuaManager::LuaManager(std::string basePath,
-                       std::map<std::string, std::string> cgi,
-                       std::map<std::string, std::string> headers,
-                       std::string body,
-                       std::map<std::string, std::string> &httpHeaders,
-                       bool &error, std::ostringstream &out) {
+LuaManager::LuaManager(
+    std::string basePath, std::map<std::string, std::string> cgi,
+    std::map<std::string, std::string> headers, std::string body,
+    std::map<std::string, std::string> &httpHeaders, bool &error,
+    std::ostringstream &out,
+    std::map<std::string, std::variant<std::string, double, bool>> cookies) {
   // Open libraries
   lua.open_libraries(sol::lib::base, sol::lib::coroutine, sol::lib::package,
                      sol::lib::string, sol::lib::os, sol::lib::math,
@@ -153,6 +153,9 @@ LuaManager::LuaManager(std::string basePath,
     out.clear();
     out << newContent;
   };
+
+  // Cookies
+  lua["sm"]["cookies"] = sol::as_table(cookies);
 }
 
 /// @brief Execute lua string code

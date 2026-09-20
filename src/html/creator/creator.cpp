@@ -119,14 +119,14 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
   }
 }
 
-std::string
-Creator::createHTML(const pugi::xml_document &doc, std::string fp,
-                    std::map<std::string, std::string> cgi,
-                    std::map<std::string, std::string> headers,
-                    std::string body,
-                    std::map<std::string, std::string> &httpHeaders) {
+std::string Creator::createHTML(
+    const pugi::xml_document &doc, std::string fp,
+    std::map<std::string, std::string> cgi,
+    std::map<std::string, std::string> headers, std::string body,
+    std::map<std::string, std::string> &httpHeaders,
+    std::map<std::string, std::variant<std::string, double, bool>> cookies) {
   std::ostringstream out;
-  lua::mngr::LuaManager script(fp, cgi, headers, body, httpHeaders, error, out);
+  lua::mngr::LuaManager script(fp, cgi, headers, body, httpHeaders, error, out, cookies);
 
   error = false;
 
