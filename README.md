@@ -77,8 +77,8 @@ Example hello world program:
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hello, world!</title>
   </head>
   <body>
@@ -158,7 +158,11 @@ If everything works correctly with code from example, you should see h1 tag with
 - sm.set_page_content(string) - replaces all of page content with string, halts rendering after.
 
 ### Cookies API
+
+- CookieConfig - A data object with cookies settings such as: path,domain,sameSite,secure,httpOnly,partitioned,maxAge,expires,host
+
 - sm.cookies - dictionary of cookies, **Key names match cookie names**
+- sm.set_cookie(name,content,CookieConfig?) - sets cookie to content, NOTE: It will replace all of existing cookie parameters if CookieConfig ones.
 
 ## Contributions
 

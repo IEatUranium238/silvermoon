@@ -265,10 +265,13 @@ LuaManager::LuaManager(
       };
 
   lua["sm"]["delete_cookie"] = [&cookies, &httpHeaders](std::string name) {
-    cookies.erase(name);
+    if (cookies.contains(name)) {
+      cookies.erase(name);
 
-    httpHeaders["Set-Cookie"] =
-        name + "=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/";
+      httpHeaders["Set-Cookie"] =
+          name +
+          "=deleted; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/";
+    }
   };
 }
 
