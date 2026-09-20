@@ -137,7 +137,7 @@ If everything works correctly with code from example, you should see h1 tag with
 - sm.request - dictionary for general purpose info such as `REQUEST_METHOD`
 - sm.header - dictionary for http headers (FastCGI headers that start with `HTTP_`, with that part removed from the key itself)
 - sm.body - string for body content
-- sm.params - URL parameters, as string
+- sm.params - dictionary for url params, stored as strings.
 
 **Key names use SCREAMING_SNAKE_CASE and match names given from FastCGI**
 
