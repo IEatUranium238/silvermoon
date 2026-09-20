@@ -286,8 +286,6 @@ LuaManager::LuaManager(
 std::pair<bool, std::string> LuaManager::runCode(const std::string code,
                                                  std::string filename) {
   auto result = lua.script(code, sol::script_pass_on_error, "@" + filename);
-
-  std::cerr << result.valid() << std::endl;
   
   // Lua error
   if (!result.valid()) {

@@ -73,8 +73,6 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
       // Lua code failed
       if (!success) {
         result = "<p><b>[LUA ERROR!]</b><br/>" + result + "</p>";
-        error = true;
-        return;
       }
 
       // If result is not empty, parse and render its content
@@ -84,6 +82,11 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
                          pugi::parse_default || ~pugi::parse_escapes);
         for (auto child : frag.child("r").children())
           render(child, out, script, filename);
+      }
+
+      if (!success){
+        error = true;
+        return;
       }
 
     } else { // Create the tag
