@@ -159,10 +159,13 @@ If everything works correctly with code from example, you should see h1 tag with
 
 ### Cookies API
 
-- CookieConfig - A data object with cookies settings such as: path,domain,sameSite,secure,httpOnly,partitioned,maxAge,expires,host
+- CookieConfig - A data object with cookies settings such as: path, domain, sameSite, secure, httpOnly,partitioned, maxAge, expires, host
 
 - sm.cookies - dictionary of cookies, **Key names match cookie names**
 - sm.set_cookie(name,content,CookieConfig?) - sets cookie to content, NOTE: It will replace all of existing cookie parameters if CookieConfig ones.
+
+### Other API
+- sm.VERSION - current silvermoon version number
 
 ## Contributions
 
@@ -172,9 +175,8 @@ I currently don't enforce any coding style but it would be nice if you set your 
 
 ## Roadmap
 
-- Cookies API
 - More request, response & security APIs
-- Migrate to use new c++ 23 features.
+- Migrate to use more new c++ 23 features.
 - Sessions
 - Create API that would allow some form of production use
 - Other platform builds

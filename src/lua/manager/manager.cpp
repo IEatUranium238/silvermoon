@@ -154,6 +154,8 @@ LuaManager::LuaManager(
   lua["sm"] = lua.create_table();
   lua::api::APIs api;
 
+  lua["sm"]["VERSION"] = SM_VERSION;
+
   // Request functions
   lua["sm"]["request"] = sol::as_table(cgi);
   lua["sm"]["header"] = sol::as_table(headers);
