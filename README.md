@@ -1,6 +1,6 @@
 # Silvermoon
 
-Silvermoon is a XHTML5 preprocessor with power of Lua 5.1 via LuaJIT.
+Silvermoon is a HTML5 preprocessor with power of Lua 5.1 via LuaJIT.
 
 It allows you to embed lua via `<lua>` tags into your markup.
 
@@ -15,7 +15,7 @@ Currently I only distribute compiled binaries for Linux (64 bit), as its what I 
 **Tools:**
 
 - CMake
-- C++ 17 or later
+- C++ 23 or later
 
 **Libraries:**
 
@@ -69,7 +69,7 @@ ProxyPassMatch "^/(.*\.sm)$" "unix:/var/run/silvermoon_fcgi.sock|/var/www/html/$
 
 ## Writing code
 
-Silvermoon usses XHTML5 (HTML 5 but following XML parsing rules) with .sm file extension as it's markup language file to embed lua into.
+Silvermoon usses HTML (Being preprocessed into valid XML style HTML for parsing purposes, it will still might just die if you feed some cursed HTML) with .sm file extension as it's markup language file to embed lua into.
 
 Example hello world program:
 
@@ -77,8 +77,8 @@ Example hello world program:
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hello, world!</title>
   </head>
   <body>
@@ -167,7 +167,6 @@ I currently don't enforce any coding style but it would be nice if you set your 
 
 - Cookies API
 - More request, response & security APIs
-- Add safer alternatives for removed functions in sm's API
 - Sessions
 - Create API that would allow some form of production use
 - Other platform builds

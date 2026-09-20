@@ -1,13 +1,18 @@
 #include <algorithm>
+#include <cctype>
 #include <fstream>
 #include <iostream>
 #include <pugixml.hpp>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "./parser.h"
 
 namespace html::prs {
+
+// CAUTION: This shit is ugly as fuck
+// Keep small children and pets away from it, IT WILL EAT THEM
 
 // Escape CDATA
 std::string Parser::escapeCData(std::string input) {
@@ -30,15 +35,49 @@ std::string Parser::escapeCData(std::string input) {
   return out;
 }
 
-// Convert HTML boolean attributes xml compatible ones
-std::string Parser::preprocessBooleanAttributes(std::string xml) {
+// Preprocess HTML to be XML valid
+std::string Parser::preprocessTags(std::string xml) {
+  static const std::unordered_set<std::string> scTags = {
+      "area",   "base",     "br",      "col",   "embed",  "hr",    "img",
+      "input",  "link",     "meta",    "param", "source", "track", "wbr",
+      "keygen", "basefont", "bgsound", "frame", "isindex"};
+
+  static const std::unordered_set<std::string> closesP = {
+      "address", "article", "aside",    "blockquote", "details", "dialog",
+      "div",     "dl",      "fieldset", "figcaption", "figure",  "footer",
+      "form",    "h1",      "h2",       "h3",         "h4",      "h5",
+      "h6",      "header",  "hgroup",   "hr",         "main",    "menu",
+      "nav",     "ol",      "p",        "pre",        "section", "table",
+      "ul"};
+
   std::string result;
   result.reserve(xml.size());
+
+  std::vector<std::string> stack;
+
+  // Helpers
+  auto lower = [](std::string s) {
+    std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) {
+      return static_cast<char>(std::tolower(c));
+    });
+    return s;
+  };
+
+  auto isNameChar = [](char c) {
+    return std::isalnum(static_cast<unsigned char>(c)) || c == '-' ||
+           c == '_' || c == ':';
+  };
 
   size_t pos = 0;
 
   while (pos < xml.size()) {
-    // Preserve comments
+    // Normal text
+    if (xml[pos] != '<') {
+      result += xml[pos + 1];
+      continue;
+    }
+
+    // Comment
     if (xml.compare(pos, 4, "<!--") == 0) {
       size_t end = xml.find("-->", pos + 4);
 
@@ -53,7 +92,7 @@ std::string Parser::preprocessBooleanAttributes(std::string xml) {
       continue;
     }
 
-    // Preserve cdata
+    // CData
     if (xml.compare(pos, 9, "<![CDATA[") == 0) {
       size_t end = xml.find("]]>", pos + 9);
 
@@ -68,79 +107,127 @@ std::string Parser::preprocessBooleanAttributes(std::string xml) {
       continue;
     }
 
-    if (xml[pos] != '<') {
-      result += xml[pos + 1];
-      continue;
-    }
+    // Find end of tag
+    size_t end = pos + 1;
+    char quote = '\0';
 
-    // Ignore closing tags
-    if (pos + 1 < xml.size() &&
-        (xml[pos + 1] == '/' || xml[pos + 1] == '!' || xml[pos + 1] == '?')) {
-      size_t end = xml.find('>', pos + 1);
+    while (end < xml.size()) {
+      char c = xml[end];
 
-      if (end == std::string::npos) {
-        result += xml.substr(pos);
-        break;
+      if (quote != '\0') {
+        if (c == quote)
+          quote = '\0';
+      } else {
+        if (c == '"' || c == '\'')
+          quote = c;
+        else if (c == '>')
+          break;
       }
 
-      result += xml.substr(pos, end - pos + 1);
-      pos = end + 1;
-      continue;
+      end += 1;
     }
 
-    // Find a closing >
-    size_t tagEnd = xml.find('>', pos + 1);
-    if (tagEnd == std::string::npos) {
+    if (end >= xml.size()) {
       result += xml.substr(pos);
       break;
     }
 
-    std::string tag = xml.substr(pos, tagEnd - pos + 1);
+    std::string tag = xml.substr(pos, end - pos + 1);
 
-    // Process attributes
-    std::string processed;
-    processed.reserve(tag.size());
+    if (tag.size() >= 2 && (tag[1] == '/' || tag[1] == '!' || tag[1] == '?')) {
+      result += tag;
 
-    size_t i = 0;
+      // Closing tag
+      if (tag[1] == '/') {
+        size_t nameStart = 2;
+        size_t nameEnd = nameStart;
 
-    processed += tag[i + 1];
+        while (nameEnd < tag.size() && isNameChar(tag[nameEnd])) {
+          nameEnd += 1;
+        }
 
-    while (i < tag.size() &&
-           !std::isspace(static_cast<unsigned char>(tag[i])) && tag[i] != '>' &&
-           tag[i] != '/') {
-      processed += tag[i + 1];
+        std::string tagName = lower(tag.substr(nameStart, nameEnd - nameStart));
+
+        for (auto it = stack.rbegin(); it != stack.rend(); it++) {
+          if (*it == tagName) {
+            stack.erase(std::next(it).base());
+            break;
+          }
+        }
+      }
+
+      pos = end + 1;
+      continue;
     }
 
+    // Extract opening tag name
+
+    size_t nameStart = pos + 1;
+    size_t nameEnd = nameStart;
+
+    while (nameEnd < end && isNameChar(xml[nameEnd])) {
+      nameEnd += 1;
+    }
+
+    std::string tagName = lower(xml.substr(nameStart, nameEnd - nameStart));
+
+    // Process attributes + boolean attributes
+
+    std::string processed;
+    processed.reserve(tag.size() + 16);
+
+    // Copy '<' + tag name
+    processed.append(tag, 0, nameEnd - pos);
+
+    size_t i = nameEnd - pos;
+
     while (i < tag.size()) {
+      // Whitespace
       if (std::isspace(static_cast<unsigned char>(tag[i]))) {
         processed += tag[i + 1];
         continue;
       }
 
-      if (tag[i] == '>' ||
-          (tag[i] == '/' && i + 1 < tag.size() && tag[i + 1] == '>')) {
-        processed += tag.substr(i);
+      // End
+      if (tag[i] == '>') {
+        processed += '>';
+        i += 1;
         break;
       }
 
-      // Read attribute name
-      size_t nameStart = i;
+      // Self-closing
+      if (tag[i] == '/' && i + 1 < tag.size() && tag[i + 1] == '>') {
+
+        processed += "/>";
+        i += 2;
+        break;
+      }
+
+      // Attribute name
+      size_t attrStart = i;
+
       while (i < tag.size() &&
              !std::isspace(static_cast<unsigned char>(tag[i])) &&
              tag[i] != '=' && tag[i] != '>' && tag[i] != '/') {
         i += 1;
       }
 
-      std::string attrName = tag.substr(nameStart, i - nameStart);
+      if (attrStart == i) {
+        processed += tag[i + 1];
+        continue;
+      }
 
-      // Skip whitespace
+      std::string attrName = tag.substr(attrStart, i - attrStart);
+
+      // Whitespace after attribute name
       size_t afterName = i;
+
       while (afterName < tag.size() &&
              std::isspace(static_cast<unsigned char>(tag[afterName]))) {
         afterName += 1;
       }
 
-      // Add value to empty attributes
+      // Boolean attribute
       if (afterName >= tag.size() || tag[afterName] != '=') {
         processed += attrName;
         processed += "=\"\"";
@@ -148,164 +235,180 @@ std::string Parser::preprocessBooleanAttributes(std::string xml) {
         continue;
       }
 
-      // Normal attribute, copy
+      // Normal attribute
       processed += attrName;
       i = afterName;
-
       processed += '=';
+
       i += 1;
 
+      // Preserve whitespace after '='
       while (i < tag.size() &&
              std::isspace(static_cast<unsigned char>(tag[i]))) {
         processed += tag[i + 1];
       }
 
-      if (i < tag.size() && (tag[i] == '"' || tag[i] == '\'')) {
-        char quote = tag[i];
+      if (i >= tag.size())
+        break;
+
+      // Quoted value
+      if (tag[i] == '"' || tag[i] == '\'') {
+        char q = tag[i];
+
         processed += tag[i + 1];
 
         while (i < tag.size()) {
-          processed += tag[i];
-          if (tag[i + 1] == quote)
+          char c = tag[i + 1];
+          processed += c;
+
+          if (c == q)
             break;
         }
-      } else {
-        while (i < tag.size() &&
-               !std::isspace(static_cast<unsigned char>(tag[i])) &&
-               tag[i] != '>') {
-          processed += tag[i + 1];
+
+        continue;
+      }
+
+      // Unquoted value
+      while (i < tag.size() &&
+             !std::isspace(static_cast<unsigned char>(tag[i])) &&
+             tag[i] != '>') {
+
+        if (tag[i] == '/' && i + 1 < tag.size() && tag[i + 1] == '>') {
+          break;
         }
+
+        processed += tag[i + 1];
       }
     }
 
-    result += processed;
-    pos = tagEnd + 1;
-  }
+    tag = std::move(processed);
 
-  return result;
-}
+    // Self-closing HTML tags
 
-// Process tag which content's should be wrapper in the CDATA
-std::string Parser::preprocessCDataTag(std::string xml, std::string tagName) {
-  std::string result;
-  result.reserve(xml.size());
+    size_t check = tag.size() - 1;
 
-  size_t pos = 0;
+    while (check > 0 &&
+           std::isspace(static_cast<unsigned char>(tag[check - 1]))) {
+      check -= 1;
+    }
 
-  std::string openPrefix = "<" + tagName;
-  std::string closeTag = "</" + tagName + ">";
-  std::string cdataStart = "<![CDATA[";
+    bool selfClosing = check > 0 && tag[check - 1] == '/';
 
-  while (pos < xml.size()) {
-    // Find the next target tag
-    size_t start = xml.find(openPrefix, pos);
-    size_t existingCData = xml.find(cdataStart, pos);
+    if (!selfClosing && scTags.contains(tagName)) {
+      tag.insert(tag.size() - 1, "/");
+      selfClosing = true;
+    }
 
-    // If a CDATA is found, copy it raw
-    if (existingCData != std::string::npos &&
-        (start == std::string::npos || existingCData < start)) {
+    // Optional closing tags
 
-      size_t cdataEnd = xml.find("]]>", existingCData + cdataStart.size());
+    auto closeTopIf = [&](auto predicate) {
+      if (!stack.empty() && predicate(stack.back())) {
+        result += "</" + stack.back() + ">";
+        stack.pop_back();
+        return true;
+      }
+      return false;
+    };
 
-      if (cdataEnd == std::string::npos) {
-        // Leave malformed cdata alone
-        result += xml.substr(pos);
+    if (tagName == "li") {
+      closeTopIf([](const std::string &s) { return s == "li"; });
+    }
+
+    if (tagName == "dt" || tagName == "dd") {
+      closeTopIf([](const std::string &s) { return s == "dt" || s == "dd"; });
+    }
+
+    if (tagName == "option") {
+      closeTopIf([](const std::string &s) { return s == "option"; });
+    }
+
+    if (tagName == "optgroup") {
+      closeTopIf([](const std::string &s) { return s == "option"; });
+      closeTopIf([](const std::string &s) { return s == "optgroup"; });
+    }
+
+    if (tagName == "rt" || tagName == "rp") {
+      closeTopIf([](const std::string &s) { return s == "rt" || s == "rp"; });
+    }
+
+    if (tagName == "tr") {
+      closeTopIf([](const std::string &s) { return s == "tr"; });
+    }
+
+    if (tagName == "td" || tagName == "th") {
+      closeTopIf([](const std::string &s) { return s == "td" || s == "th"; });
+    }
+
+    if (tagName == "thead" || tagName == "tbody" || tagName == "tfoot") {
+      closeTopIf([](const std::string &s) {
+        return s == "thead" || s == "tbody" || s == "tfoot";
+      });
+    }
+
+    if (closesP.contains(tagName)) {
+      closeTopIf([](const std::string &s) { return s == "p"; });
+    }
+
+    // Code tags
+    bool isCDataTag =
+        tagName == "lua" || tagName == "style" || tagName == "script";
+
+    // lua-start attribute
+    if (tagName == "lua") {
+      size_t lineNum = std::count(xml.begin(), xml.begin() + pos, '\n');
+
+      std::string attr = " lua-start=\"" + std::to_string(lineNum) + "\"";
+
+      size_t insertOffset = tag.size() - 1;
+
+      tag.insert(insertOffset, attr);
+    }
+
+    result += tag;
+
+    // Ignore self closing tags
+    if (selfClosing) {
+      pos = end + 1;
+      continue;
+    }
+
+    // Wrap cdata
+    if (isCDataTag) {
+      size_t contentStart = end + 1;
+      std::string closeTag = "</" + tagName + ">";
+
+      size_t close = xml.find(closeTag, contentStart);
+
+      if (close == std::string::npos) {
+        result += xml.substr(contentStart);
         break;
       }
 
-      cdataEnd += 3;
+      std::string content = xml.substr(contentStart, close - contentStart);
 
-      result += xml.substr(pos, cdataEnd - pos);
-      pos = cdataEnd;
+      result += "<![CDATA[";
+      result += escapeCData(content);
+      result += "]]>";
+      result += closeTag;
+
+      pos = close + closeTag.size();
       continue;
     }
 
-    // No more target tags.
-    if (start == std::string::npos) {
-      result += xml.substr(pos);
-      break;
-    }
+    stack.push_back(tagName);
+    pos = end + 1;
+  }
 
-    size_t afterName = start + openPrefix.size();
-
-    if (afterName < xml.size()) {
-      char c = xml[afterName];
-
-      if (std::isalnum(static_cast<unsigned char>(c)) || c == '-' || c == '_' ||
-          c == ':') {
-        result += xml.substr(pos, afterName - pos);
-        pos = afterName;
-        continue;
-      }
-    }
-
-    size_t tagClose = xml.find('>', afterName);
-
-    if (tagClose == std::string::npos) {
-
-      result += xml.substr(pos);
-      break;
-    }
-
-    result += xml.substr(pos, start - pos);
-
-    std::string openTag = xml.substr(start, tagClose - start + 1);
-    bool selfClosing = tagClose > start && xml[tagClose - 1] == '/';
-
-    // Add internal atribute for lua tags for padding in the future
-    if (tagName == "lua") {
-      size_t lineNum = std::count(xml.begin(), xml.begin() + start, '\n');
-      std::string attr = " lua-start=\"" + std::to_string(lineNum) + "\"";
-
-      size_t insertOffset =
-          selfClosing ? openTag.size() - 2 : openTag.size() - 1;
-      openTag.insert(insertOffset, attr);
-    }
-
-    result += openTag;
-
-    if (selfClosing) {
-      pos = tagClose + 1;
-      continue;
-    }
-
-    size_t contentStart = tagClose + 1;
-    size_t end = xml.find(closeTag, contentStart);
-
-    if (end == std::string::npos) {
-      result += xml.substr(contentStart);
-      break;
-    }
-
-    std::string content = xml.substr(contentStart, end - contentStart);
-
-    result += "<![CDATA[";
-    result += escapeCData(content);
-    result += "]]>";
-    result += closeTag;
-
-    pos = end + closeTag.size();
+  // Close remaining
+  while (!stack.empty()) {
+    result += "</" + stack.back() + ">";
+    stack.pop_back();
   }
 
   return result;
 }
 
-// Escape needed tags
-std::string Parser::preprocessTags(std::string xml) {
-  // Preprocess atributes
-  xml = preprocessBooleanAttributes(xml);
-
-  // Escape tags with code
-  xml = preprocessCDataTag(xml, "lua");
-  xml = preprocessCDataTag(xml, "style");
-  xml = preprocessCDataTag(xml, "script");
-
-  return xml;
-}
-
-/// @brief Read the file and feed it to pugixml to generate the tree
-/// @param filepath file's filepath to read
-/// @return pugi::xml_document
+/// Read the file and feed it to pugixml to generate the tree
 pugi::xml_document Parser::readFile(std::string filepath) {
   // Load file contents
   std::ifstream file(filepath);
@@ -387,10 +490,10 @@ pugi::xml_document Parser::readFile(std::string filepath) {
         "</head>"
         "<body>"
 
-        "<h1>Failed to parse Silvermoon XHTML5 document</h1>"
+        "<h1>Failed to parse Silvermoon HTML document</h1>"
 
         "<p>Silvermoon encountered an error while trying to parse this "
-        "Silvermoon XHTML5 document.</p>"
+        "Silvermoon HTML document.</p>"
 
         "<h2>Error Details</h2>"
         "<p><strong>Description:</strong> " +

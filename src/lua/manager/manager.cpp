@@ -51,8 +51,8 @@ LuaManager::LuaManager(std::string basePath,
                      sol::lib::table, sol::lib::io, sol::lib::utf8,
                      sol::lib::bit32);
 
-  // TODO: make alternatives for some needed, but EVIL functions
-  // Remove evil functions
+  // Kidnap evil functions from lua so user's skill issue wont blow up
+  // production if someone is crazy enough to use it there
   lua["os"]["execute"] = sol::nil;
   lua["os"]["exit"] = sol::nil;
   lua["os"]["remove"] = sol::nil;
