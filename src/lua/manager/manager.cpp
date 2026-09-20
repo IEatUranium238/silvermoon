@@ -44,7 +44,8 @@ LuaManager::LuaManager(
     std::map<std::string, std::string> headers, std::string body,
     std::map<std::string, std::string> &httpHeaders, bool &error,
     std::ostringstream &out,
-    std::map<std::string, std::variant<std::string, double, bool>> cookies) {
+    std::map<std::string, std::variant<std::string, double, bool>> cookies,
+    std::map<std::string, std::string> params) {
   // Open libraries
   lua.open_libraries(sol::lib::base, sol::lib::coroutine, sol::lib::package,
                      sol::lib::string, sol::lib::os, sol::lib::math,
@@ -160,6 +161,7 @@ LuaManager::LuaManager(
   lua["sm"]["request"] = sol::as_table(cgi);
   lua["sm"]["header"] = sol::as_table(headers);
   lua["sm"]["body"] = body;
+  lua["sm"]["params"] = sol::as_table(params);
 
   // Security functions
   lua["sm"]["escape_html"] = [&api](std::string str) {
@@ -285,6 +287,8 @@ std::pair<bool, std::string> LuaManager::runCode(const std::string code,
                                                  std::string filename) {
   auto result = lua.script(code, sol::script_pass_on_error, "@" + filename);
 
+  std::cerr << result.valid() << std::endl;
+  
   // Lua error
   if (!result.valid()) {
     sol::error err = result;

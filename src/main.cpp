@@ -1,5 +1,6 @@
 #include "./html/creator/creator.h"
 #include "./html/parser/parser.h"
+#include "./lua/api/api.h"
 #include <fcgiapp.h>
 #include <filesystem>
 #include <iostream>
@@ -20,6 +21,7 @@ void worker(FCGX_Request *request) {
   std::map<std::string, std::string> cgi;
   std::map<std::string, std::string> headers;
   std::map<std::string, std::variant<std::string, double, bool>> cookies;
+  std::map<std::string, std::string> params;
   std::string body;
 
   // CGI variables
@@ -76,11 +78,59 @@ void worker(FCGX_Request *request) {
         cookies[name] = value;
       }
 
-      if (end == std::string_view::npos){
+      if (end == std::string_view::npos) {
         break;
       }
 
       cookieHeader.remove_prefix(end + 1);
+    }
+  }
+
+  // Parse URL parameters
+  if (auto it = cgi.find("REQUEST_URI"); it != headers.end()) {
+    std::string_view url = it->second;
+
+    size_t queryStart = url.find('?');
+    if (queryStart != std::string_view::npos) {
+      std::string_view query = url.substr(queryStart + 1);
+
+      // Ignore fragment
+      size_t fragmentStart = query.find('#');
+      if (fragmentStart != std::string_view::npos) {
+        query = query.substr(0, fragmentStart);
+      }
+
+      while (!query.empty()) {
+        size_t end = query.find('&');
+        std::string_view param = query.substr(0, end);
+
+        size_t equals = param.find('=');
+
+        std::string name;
+        std::string value;
+
+        if (equals != std::string_view::npos) {
+          name = std::string(param.substr(0, equals));
+          value = std::string(param.substr(equals + 1));
+        } else {
+          // Parameters without = treated as empty
+          name = std::string(param);
+        }
+
+        lua::api::APIs urlApi;
+
+        // URL-decode
+        name = urlApi.unescapeURL(name);
+        value = urlApi.unescapeURL(value);
+
+        params[name] = value;
+
+        if (end == std::string_view::npos) {
+          break;
+        }
+
+        query.remove_prefix(end + 1);
+      }
     }
   }
 
@@ -125,8 +175,8 @@ void worker(FCGX_Request *request) {
   resHeaders["Status"] = "200";
   resHeaders["Content-Type"] = "text/html";
 
-  std::string res =
-      creator.createHTML(parsedDoc, script, cgi, headers, body, resHeaders, cookies);
+  std::string res = creator.createHTML(parsedDoc, script, cgi, headers, body,
+                                       resHeaders, cookies, params);
 
   std::string headerString = "";
 

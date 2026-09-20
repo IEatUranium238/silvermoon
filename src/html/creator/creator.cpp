@@ -42,7 +42,7 @@ std::string Creator::escape(std::string s) {
 // Render the html
 void Creator::render(pugi::xml_node node, std::ostringstream &out,
                      lua::mngr::LuaManager &script, std::string filename) {
-  if (error) { // Exit if got an error
+  if (error == true || stopper == true) { // Exit if got an error
     return;
   }
 
@@ -65,7 +65,8 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
       }
 
       auto [success, result] = script.runCode(code, filename);
-      if (error) {
+
+      if (stopper == true) {
         return;
       }
 
@@ -98,7 +99,7 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
 
         for (auto child : node.children()) {
           render(child, out, script, filename);
-          if (error) {
+          if (stopper == true) {
             return;
           }
         }
@@ -124,9 +125,11 @@ std::string Creator::createHTML(
     std::map<std::string, std::string> cgi,
     std::map<std::string, std::string> headers, std::string body,
     std::map<std::string, std::string> &httpHeaders,
-    std::map<std::string, std::variant<std::string, double, bool>> cookies) {
+    std::map<std::string, std::variant<std::string, double, bool>> cookies,
+    std::map<std::string, std::string> params) {
   std::ostringstream out;
-  lua::mngr::LuaManager script(fp, cgi, headers, body, httpHeaders, error, out, cookies);
+  lua::mngr::LuaManager script(fp, cgi, headers, body, httpHeaders, stopper,
+                               out, cookies, params);
 
   error = false;
 

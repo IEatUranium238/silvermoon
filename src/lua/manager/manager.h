@@ -35,7 +35,8 @@ public:
       std::map<std::string, std::string> headers, std::string body,
       std::map<std::string, std::string> &httpHeaders, bool &error,
       std::ostringstream &out,
-      std::map<std::string, std::variant<std::string, double, bool>> cookies);
+      std::map<std::string, std::variant<std::string, double, bool>> cookies,
+      std::map<std::string, std::string> params);
   std::pair<bool, std::string> runCode(const std::string code,
                                        std::string filename);
 };
