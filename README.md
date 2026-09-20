@@ -1,6 +1,6 @@
 # Silvermoon
 
-Silvermoon is a XHTML5 preprocessor with power of Lua 5.1 via LuaJIT.
+Silvermoon is a HTML5 preprocessor with power of Lua 5.1 via LuaJIT.
 
 It allows you to embed lua via `<lua>` tags into your markup.
 
@@ -15,7 +15,7 @@ Currently I only distribute compiled binaries for Linux (64 bit), as its what I 
 **Tools:**
 
 - CMake
-- C++ 17 or later
+- C++ 23 or later
 
 **Libraries:**
 
@@ -69,7 +69,7 @@ ProxyPassMatch "^/(.*\.sm)$" "unix:/var/run/silvermoon_fcgi.sock|/var/www/html/$
 
 ## Writing code
 
-Silvermoon usses XHTML5 (HTML 5 but following XML parsing rules) with .sm file extension as it's markup language file to embed lua into.
+Silvermoon usses HTML (Being preprocessed into valid XML style HTML for parsing purposes, it will still might just die if you feed some cursed HTML) with .sm file extension as it's markup language file to embed lua into.
 
 Example hello world program:
 
@@ -132,27 +132,40 @@ If everything works correctly with code from example, you should see h1 tag with
 
 ## Current Silvermoon's APIs
 
-### sm.req - request API
+### Request APIs
 
-- sm.req.request - dictionary for general purpose info such as `REQUEST_METHOD`
-- sm.req.header - dictionary for http headers (FastCGI headers that start with `HTTP_`, with that part removed from the key itself)
-- sm.req.body - string for body content
+- sm.request - dictionary for general purpose info such as `REQUEST_METHOD`
+- sm.header - dictionary for http headers (FastCGI headers that start with `HTTP_`, with that part removed from the key itself)
+- sm.body - string for body content
 
 **Key names use SCREAMING_SNAKE_CASE and match names given from FastCGI**
 
-### sm.sec - Security API
+### Security API
 
-- sm.sec.escape_html(string) - escape html content from the string
-- sm.sec.escape_url(string) - escape the string for url
-- sm.sec.unescape_url(string) - revert url escaping for the string
+- sm.escape_html(string) - escape html content from the string
+- sm.unescape_html(string) - revert html escaping for the string
+- sm.escape_url(string) - escape the string for url
+- sm.unescape_url(string) - revert url escaping for the string
 
-### sm.res - Response API
+### Response API
 
-- sm.res.set_http_code(code) - set response http code (ex. 404 - for not found)
-- sm.res.set_mime_type(string) - set response mime type to a string (ex. "application/json" - for json)
-- sm.res.set_header(name, content) - set http header to some content
-- sm.res.delete_header(name) - delete http header from response
-- sm.res.redirect(url) - redirect user to some url
+- sm.set_http_code(code) - set response http code (ex. 404 - for not found)
+- sm.set_mime_type(string) - set response mime type to a string (ex. "application/json" - for json)
+- sm.set_header(name, content) - set http header to some content
+- sm.delete_header(name) - delete http header from response
+- sm.redirect(url) - redirect user to some url
+- sm.halt() - stops rendering of the page
+- sm.set_page_content(string) - replaces all of page content with string, halts rendering after.
+
+### Cookies API
+
+- CookieConfig - A data object with cookies settings such as: path, domain, sameSite, secure, httpOnly,partitioned, maxAge, expires, host
+
+- sm.cookies - dictionary of cookies, **Key names match cookie names**
+- sm.set_cookie(name,content,CookieConfig?) - sets cookie to content, NOTE: It will replace all of existing cookie parameters if CookieConfig ones.
+
+### Other API
+- sm.VERSION - current silvermoon version number
 
 ## Contributions
 
@@ -162,10 +175,8 @@ I currently don't enforce any coding style but it would be nice if you set your 
 
 ## Roadmap
 
-- Move to own HTML parser, allowing "forgiving" parsing and general HTML syntax (v0.3 goal?)
-- Cookies API
 - More request, response & security APIs
-- Add safer alternatives for removed functions in sm's API
+- Migrate to use more new c++ 23 features.
 - Sessions
 - Create API that would allow some form of production use
 - Other platform builds

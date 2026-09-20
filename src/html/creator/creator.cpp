@@ -42,7 +42,7 @@ std::string Creator::escape(std::string s) {
 // Render the html
 void Creator::render(pugi::xml_node node, std::ostringstream &out,
                      lua::mngr::LuaManager &script, std::string filename) {
-  if (error) { // Exit if got an error
+  if (error == true || stopper == true) { // Exit if got an error
     return;
   }
 
@@ -66,6 +66,10 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
 
       auto [success, result] = script.runCode(code, filename);
 
+      if (stopper == true) {
+        return;
+      }
+
       // Lua code failed
       if (!success) {
         result = "<p><b>[LUA ERROR!]</b><br/>" + result + "</p>";
@@ -80,9 +84,9 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
           render(child, out, script, filename);
       }
 
-      // Set error stopper value on error
-      if (!success) {
+      if (!success){
         error = true;
+        return;
       }
 
     } else { // Create the tag
@@ -95,8 +99,14 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
         out << "/>";
       } else {
         out << '>';
-        for (auto child : node.children())
+
+        for (auto child : node.children()) {
           render(child, out, script, filename);
+          if (stopper == true) {
+            return;
+          }
+        }
+
         out << "</" << tag << '>';
       }
     }
@@ -113,14 +123,16 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
   }
 }
 
-std::string
-Creator::createHTML(const pugi::xml_document &doc, std::string fp,
-                    std::map<std::string, std::string> cgi,
-                    std::map<std::string, std::string> headers,
-                    std::string body,
-                    std::map<std::string, std::string> &httpHeaders) {
+std::string Creator::createHTML(
+    const pugi::xml_document &doc, std::string fp,
+    std::map<std::string, std::string> cgi,
+    std::map<std::string, std::string> headers, std::string body,
+    std::map<std::string, std::string> &httpHeaders,
+    std::map<std::string, std::variant<std::string, double, bool>> cookies,
+    std::map<std::string, std::string> params) {
   std::ostringstream out;
-  lua::mngr::LuaManager script(fp, cgi, headers, body, httpHeaders);
+  lua::mngr::LuaManager script(fp, cgi, headers, body, httpHeaders, stopper,
+                               out, cookies, params);
 
   error = false;
 
