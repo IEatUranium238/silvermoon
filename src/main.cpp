@@ -86,6 +86,8 @@ void worker(FCGX_Request *request) {
     }
   }
 
+  lua::api::APIs urlApi;
+
   // Parse URL parameters
   if (auto it = cgi.find("REQUEST_URI"); it != headers.end()) {
     std::string_view url = it->second;
@@ -116,8 +118,6 @@ void worker(FCGX_Request *request) {
           // Parameters without = treated as empty
           name = std::string(param);
         }
-
-        lua::api::APIs urlApi;
 
         // URL-decode
         name = urlApi.unescapeURL(name);
