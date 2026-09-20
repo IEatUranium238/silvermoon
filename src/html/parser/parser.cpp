@@ -73,7 +73,7 @@ std::string Parser::preprocessTags(std::string xml) {
   while (pos < xml.size()) {
     // Normal text
     if (xml[pos] != '<') {
-      result += xml[pos + 1];
+      result += xml[pos++];
       continue;
     }
 
@@ -184,7 +184,7 @@ std::string Parser::preprocessTags(std::string xml) {
     while (i < tag.size()) {
       // Whitespace
       if (std::isspace(static_cast<unsigned char>(tag[i]))) {
-        processed += tag[i + 1];
+        processed += tag[i++];
         continue;
       }
 
@@ -213,7 +213,7 @@ std::string Parser::preprocessTags(std::string xml) {
       }
 
       if (attrStart == i) {
-        processed += tag[i + 1];
+        processed += tag[i++];
         continue;
       }
 
@@ -245,7 +245,7 @@ std::string Parser::preprocessTags(std::string xml) {
       // Preserve whitespace after '='
       while (i < tag.size() &&
              std::isspace(static_cast<unsigned char>(tag[i]))) {
-        processed += tag[i + 1];
+        processed += tag[i++];
       }
 
       if (i >= tag.size())
@@ -255,10 +255,10 @@ std::string Parser::preprocessTags(std::string xml) {
       if (tag[i] == '"' || tag[i] == '\'') {
         char q = tag[i];
 
-        processed += tag[i + 1];
+        processed += tag[i++];
 
         while (i < tag.size()) {
-          char c = tag[i + 1];
+          char c = tag[i++];
           processed += c;
 
           if (c == q)
@@ -277,7 +277,7 @@ std::string Parser::preprocessTags(std::string xml) {
           break;
         }
 
-        processed += tag[i + 1];
+        processed += tag[i++];
       }
     }
 
