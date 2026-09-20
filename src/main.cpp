@@ -34,6 +34,7 @@ void worker(FCGX_Request *request) {
 
     // HTTP headers start with HTTP_
     if (key.rfind("HTTP_", 0) == 0) {
+      std::cerr << key << " " << value << std::endl;
       std::string headerName = key.substr(5);
       headers[headerName] = value;
       continue;
@@ -84,7 +85,7 @@ void worker(FCGX_Request *request) {
   resHeaders["Content-Type"] = "text/html";
 
   std::string res =
-      creator.createHTML(parsedDoc, script, cgi, resHeaders, body, resHeaders);
+      creator.createHTML(parsedDoc, script, cgi, headers, body, resHeaders);
 
   std::string headerString = "";
 

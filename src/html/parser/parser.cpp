@@ -408,7 +408,7 @@ std::string Parser::preprocessTags(std::string xml) {
   return result;
 }
 
-/// Read the file and feed it to pugixml to generate the tree
+// Read the file and feed it to pugixml to generate the tree
 pugi::xml_document Parser::readFile(std::string filepath) {
   // Load file contents
   std::ifstream file(filepath);
