@@ -8,7 +8,7 @@
 namespace lua::mngr {
 
 // Escape characters for HTML
-std::string escape(std::string s) {
+std::string LuaManager::escape(std::string s) {
   std::string out;
   out.reserve(s.size());
 
@@ -98,6 +98,58 @@ LuaManager::LuaManager(
     printed += '\n';
   };
 
+  // Custom data types
+  lua.new_usertype<CookieConfig>(
+      "CookieConfig", sol::call_constructor,
+
+      sol::factories([](sol::table config) {
+        CookieConfig cookie;
+
+        if (auto value = config["path"].get<sol::optional<std::string>>()) {
+          cookie.path = *value;
+        }
+
+        if (auto value = config["domain"].get<sol::optional<std::string>>()) {
+          cookie.domain = *value;
+        }
+
+        if (auto value = config["sameSite"].get<sol::optional<std::string>>()) {
+          cookie.sameSite = *value;
+        }
+
+        if (auto value = config["secure"].get<sol::optional<bool>>()) {
+          cookie.secure = *value;
+        }
+
+        if (auto value = config["httpOnly"].get<sol::optional<bool>>()) {
+          cookie.httpOnly = *value;
+        }
+
+        if (auto value = config["partitioned"].get<sol::optional<bool>>()) {
+          cookie.partitioned = *value;
+        }
+
+        if (auto value = config["maxAge"].get<sol::optional<int>>()) {
+          cookie.maxAge = *value;
+        }
+
+        if (auto value = config["expires"].get<sol::optional<std::string>>()) {
+          cookie.expires = *value;
+        }
+
+        if (auto value = config["host"].get<sol::optional<std::string>>()) {
+          cookie.host = *value;
+        }
+
+        return cookie;
+      }),
+
+      "path", &CookieConfig::path, "domain", &CookieConfig::domain, "sameSite",
+      &CookieConfig::sameSite, "secure", &CookieConfig::secure, "httpOnly",
+      &CookieConfig::httpOnly, "partitioned", &CookieConfig::partitioned,
+      "maxAge", &CookieConfig::maxAge, "expires", &CookieConfig::expires,
+      "host", &CookieConfig::host);
+
   // API
   lua["sm"] = lua.create_table();
   lua::api::APIs api;
@@ -156,6 +208,68 @@ LuaManager::LuaManager(
 
   // Cookies
   lua["sm"]["cookies"] = sol::as_table(cookies);
+  lua["sm"]["set_cookie"] =
+      [&cookies, &httpHeaders](std::string name,
+                               std::variant<std::string, double, bool> content,
+                               sol::optional<CookieConfig> cookieConfig) {
+        cookies[name] = content;
+
+        // Some cursed magic to convert variant to string
+        std::string result = std::visit(
+            [](const auto &arg) mutable {
+              std::ostringstream oss;
+              oss << arg;
+              return oss.str();
+            },
+            content);
+
+        std::string header = name + "=" + result;
+
+        if (cookieConfig) {
+          auto &config = *cookieConfig;
+
+          if (config.path) {
+            header += "; Path=" + *config.path;
+          }
+
+          if (config.domain) {
+            header += "; Domain=" + *config.domain;
+          }
+
+          if (config.sameSite) {
+            header += "; SameSite=" + *config.sameSite;
+          }
+
+          if (config.secure && *config.secure) {
+            header += "; Secure";
+          }
+
+          if (config.httpOnly && *config.httpOnly) {
+            header += "; HttpOnly";
+          }
+
+          if (config.partitioned && *config.partitioned) {
+            header += "; Partitioned";
+          }
+
+          if (config.maxAge) {
+            header += "; Max-Age=" + std::to_string(*config.maxAge);
+          }
+
+          if (config.expires) {
+            header += "; Expires=" + *config.expires;
+          }
+        }
+
+        httpHeaders["Set-Cookie"] = header;
+      };
+
+  lua["sm"]["delete_cookie"] = [&cookies, &httpHeaders](std::string name) {
+    cookies.erase(name);
+
+    httpHeaders["Set-Cookie"] =
+        name + "=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/";
+  };
 }
 
 /// @brief Execute lua string code

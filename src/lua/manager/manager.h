@@ -13,6 +13,21 @@ class LuaManager {
 private:
   sol::state lua;
   std::string printed = "";
+  std::string escape(std::string s);
+
+  struct CookieConfig {
+    std::optional<std::string> path;
+    std::optional<std::string> domain;
+    std::optional<std::string> sameSite;
+
+    std::optional<bool> secure;
+    std::optional<bool> httpOnly;
+    std::optional<bool> partitioned;
+
+    std::optional<int> maxAge;
+    std::optional<std::string> expires;
+    std::optional<std::string> host;
+  };
 
 public:
   LuaManager(
