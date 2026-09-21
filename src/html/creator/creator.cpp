@@ -4,6 +4,7 @@
 #include <map>
 #include <pugixml.hpp>
 #include <sstream>
+#include <unordered_set>
 #include <string>
 
 namespace html::crt {
@@ -46,6 +47,11 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
     return;
   }
 
+  static const std::unordered_set<std::string> scTags = {
+      "area",   "base",     "br",      "col",   "embed",  "hr",    "img",
+      "input",  "link",     "meta",    "param", "source", "track", "wbr",
+      "keygen", "basefont", "bgsound", "frame", "isindex"};
+
   switch (node.type()) {
   case pugi::node_pcdata: // Normal text
     out << node.value();
@@ -84,7 +90,7 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
           render(child, out, script, filename);
       }
 
-      if (!success){
+      if (!success) {
         error = true;
         return;
       }
@@ -95,7 +101,7 @@ void Creator::render(pugi::xml_node node, std::ostringstream &out,
       // Populate its content
       for (auto attr : node.attributes())
         out << ' ' << attr.name() << "=\"" << escape(attr.value()) << '"';
-      if (node.children().empty()) {
+      if (node.children().empty() && scTags.count(tag)) {
         out << "/>";
       } else {
         out << '>';
