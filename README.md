@@ -44,9 +44,22 @@ You need to configure a web server of your choosing to use .sm files and redirec
 **Example configuration to add in Apache (000-default.conf):**
 
 ```
+# Fix mime type problems
+RemoveType .sm
+AddType text/html .sm
+
+# Set main file
 DirectoryIndex index.sm
 
-ProxyPassMatch "^/(.*\.sm)$" "fcgi://127.0.0.1:9000/var/www/html/$1"
+<Directory /var/www/html>
+  Require all granted
+  AllowOverride All
+
+  # Handle files
+  <FilesMatch "\.sm$">
+    SetHandler "fcgi://127.0.0.1:9000"
+  </FilesMatch>
+</Directory>
 ```
 
 ### UNIX Socket usage
@@ -58,9 +71,7 @@ To do it, do following:
 2. Change your server config to use UNIX socket instead, example for Apache:
 
 ```
-DirectoryIndex index.sm
-
-ProxyPassMatch "^/(.*\.sm)$" "unix:/var/run/silvermoon_fcgi.sock|/var/www/html/$1"
+SetHandler "unix:/var/run/silvermoon_fcgi.sock|fcgi://127.0.0.1:9000"
 ```
 
 3. Restart your web server and silvermoon
