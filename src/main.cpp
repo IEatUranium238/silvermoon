@@ -89,48 +89,36 @@ void worker(FCGX_Request *request) {
   lua::api::APIs urlApi;
 
   // Parse URL parameters
-  if (auto it = cgi.find("REQUEST_URI"); it != headers.end()) {
-    std::string_view url = it->second;
+  if (auto it = cgi.find("QUERY_STRING"); it != cgi.end()) {
+    std::string_view query = it->second;
+    while (!query.empty()) {
+      size_t end = query.find('&');
+      std::string_view param = query.substr(0, end);
 
-    size_t queryStart = url.find('?');
-    if (queryStart != std::string_view::npos) {
-      std::string_view query = url.substr(queryStart + 1);
+      size_t equals = param.find('=');
 
-      // Ignore fragment
-      size_t fragmentStart = query.find('#');
-      if (fragmentStart != std::string_view::npos) {
-        query = query.substr(0, fragmentStart);
+      std::string name;
+      std::string value;
+
+      if (equals != std::string_view::npos) {
+        name = std::string(param.substr(0, equals));
+        value = std::string(param.substr(equals + 1));
+      } else {
+        // Parameters without = are treated as empty
+        name = std::string(param);
       }
 
-      while (!query.empty()) {
-        size_t end = query.find('&');
-        std::string_view param = query.substr(0, end);
+      // URL-decode
+      name = urlApi.unescapeURL(name);
+      value = urlApi.unescapeURL(value);
 
-        size_t equals = param.find('=');
+      params[name] = value;
 
-        std::string name;
-        std::string value;
-
-        if (equals != std::string_view::npos) {
-          name = std::string(param.substr(0, equals));
-          value = std::string(param.substr(equals + 1));
-        } else {
-          // Parameters without = treated as empty
-          name = std::string(param);
-        }
-
-        // URL-decode
-        name = urlApi.unescapeURL(name);
-        value = urlApi.unescapeURL(value);
-
-        params[name] = value;
-
-        if (end == std::string_view::npos) {
-          break;
-        }
-
-        query.remove_prefix(end + 1);
+      if (end == std::string_view::npos) {
+        break;
       }
+
+      query.remove_prefix(end + 1);
     }
   }
 
