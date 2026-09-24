@@ -57,10 +57,12 @@ DirectoryIndex index.sm
 
   # Handle files
   <FilesMatch "\.sm$">
-    SetHandler "fcgi://127.0.0.1:9000"
+    SetHandler "proxy:fcgi://127.0.0.1:9000"
   </FilesMatch>
 </Directory>
 ```
+
+> NOTE: mod_proxy_fcgi module needed!
 
 ### UNIX Socket usage
 
@@ -71,7 +73,7 @@ To do it, do following:
 2. Change your server config to use UNIX socket instead, example for Apache:
 
 ```
-SetHandler "unix:/var/run/silvermoon_fcgi.sock|fcgi://127.0.0.1:9000"
+SetHandler "unix:/var/run/silvermoon_fcgi.sock"
 ```
 
 3. Restart your web server and silvermoon
