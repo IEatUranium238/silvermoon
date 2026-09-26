@@ -170,7 +170,11 @@ LuaManager::LuaManager(
   lua::api::APIs api;
 
   lua["sm"]["VERSION"] = SM_VERSION;
-  lua["sm"]["FOLDER"] = basePath;
+
+  std::filesystem::path filePath(basePath);
+  std::filesystem::path parentPath = filePath.parent_path();
+
+  lua["sm"]["FOLDER"] = parentPath.string();
 
   // Request functions
   lua["sm"]["request"] = sol::as_table(cgi);
