@@ -4,8 +4,8 @@
 #include <map>
 #include <pugixml.hpp>
 #include <sstream>
-#include <unordered_set>
 #include <string>
+#include <unordered_set>
 
 namespace html::crt {
 
@@ -135,10 +135,12 @@ std::string Creator::createHTML(
     std::map<std::string, std::string> headers, std::string body,
     std::map<std::string, std::string> &httpHeaders,
     std::map<std::string, std::variant<std::string, double, bool>> cookies,
-    std::map<std::string, std::string> params) {
+    std::map<std::string, std::string> params, bool allowOpen, bool allowAdvFS,
+    bool allowExecute, bool allowDynamicCode) {
   std::ostringstream out;
   lua::mngr::LuaManager script(fp, cgi, headers, body, httpHeaders, stopper,
-                               out, cookies, params);
+                               out, cookies, params, allowOpen, allowAdvFS,
+                               allowExecute, allowDynamicCode);
 
   error = false;
 

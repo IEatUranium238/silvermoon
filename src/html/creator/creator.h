@@ -22,7 +22,8 @@ public:
       std::map<std::string, std::string> headers, std::string body,
       std::map<std::string, std::string> &httpHeaders,
       std::map<std::string, std::variant<std::string, double, bool>> cookies,
-      std::map<std::string, std::string> params);
+      std::map<std::string, std::string> params, bool allowOpen,
+      bool allowAdvFS, bool allowExecute, bool allowDynamicCode);
 };
 } // namespace html::crt
 

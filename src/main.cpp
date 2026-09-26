@@ -17,6 +17,11 @@
 const char *sockPath = "/var/run/silvermoon_fcgi.sock";
 #endif
 
+bool enableOpen = false;
+bool enableExecute = false;
+bool enableCL = false;
+bool enableAdvFs = false;
+
 void worker(FCGX_Request *request) {
   std::map<std::string, std::string> cgi;
   std::map<std::string, std::string> headers;
@@ -164,7 +169,8 @@ void worker(FCGX_Request *request) {
   resHeaders["Content-Type"] = "text/html";
 
   std::string res = creator.createHTML(parsedDoc, script, cgi, headers, body,
-                                       resHeaders, cookies, params);
+                                       resHeaders, cookies, params, enableOpen,
+                                       enableAdvFs, enableExecute, enableCL);
 
   std::string headerString = "";
 
@@ -222,6 +228,37 @@ int main() {
     }
   }
 
+  // Safety settings
+  const char *clEnv = std::getenv("SM_ENABLE_RISKY_CODELOADING");
+  const char *executionEnv = std::getenv("SM_ENABLE_VERY_RISKY_SHELL");
+  const char *openEnv = std::getenv("SM_ENABLE_RISKY_OPEN");
+  const char *fsEnv = std::getenv("SM_ENABLE_VERY_RISKY_ADVANCED_FS");
+
+  if (clEnv != nullptr) {
+    if (clEnv == "true") {
+      enableCL = true;
+    }
+  }
+
+  if (executionEnv != nullptr) {
+    if (executionEnv == "true") {
+      enableExecute = true;
+    }
+  }
+
+  if (openEnv != nullptr) {
+    if (openEnv == "true") {
+      enableOpen = true;
+    }
+  }
+
+  if (fsEnv != nullptr) {
+    if (fsEnv == "true") {
+      enableAdvFs = true;
+    }
+  }
+
+  // FCGI init
   if (FCGX_Init() != 0) {
     std::cerr << "Failed to initialize FastCGI" << std::endl;
     return 1;

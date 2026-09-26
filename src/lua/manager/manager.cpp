@@ -45,7 +45,8 @@ LuaManager::LuaManager(
     std::map<std::string, std::string> &httpHeaders, bool &error,
     std::ostringstream &out,
     std::map<std::string, std::variant<std::string, double, bool>> cookies,
-    std::map<std::string, std::string> params) {
+    std::map<std::string, std::string> params, bool allowOpen, bool allowAdvFS,
+    bool allowExecute, bool allowDynamicCode) {
   // Open libraries
   lua.open_libraries(sol::lib::base, sol::lib::coroutine, sol::lib::package,
                      sol::lib::string, sol::lib::os, sol::lib::math,
@@ -54,16 +55,29 @@ LuaManager::LuaManager(
 
   // Kidnap evil functions from lua so user's skill issue wont blow up
   // production if someone is crazy enough to use it there
-  lua["os"]["execute"] = sol::nil;
   lua["os"]["exit"] = sol::nil;
-  lua["os"]["remove"] = sol::nil;
-  lua["os"]["rename"] = sol::nil;
+  lua["collectgarbage"] = sol::nil;
 
-  lua["io"]["open"] = sol::nil;
-  lua["io"]["popen"] = sol::nil;
+  if (!allowOpen) {
+    lua["io"]["open"] = sol::nil;
+  }
 
-  lua["dofile"] = sol::nil;
-  lua["loadfile"] = sol::nil;
+  if (!(allowOpen && allowAdvFS)) {
+    lua["os"]["remove"] = sol::nil;
+    lua["os"]["rename"] = sol::nil;
+  }
+
+  if (!allowDynamicCode) {
+    lua["load"] = sol::nil;
+    lua["loadstring"] = sol::nil;
+    lua["dofile"] = sol::nil;
+    lua["loadfile"] = sol::nil;
+  }
+
+  if (!allowExecute) {
+    lua["os"]["execute"] = sol::nil;
+    lua["io"]["popen"] = sol::nil;
+  }
 
   // Add current file's path to module path
   if (!basePath.empty()) {
@@ -156,6 +170,7 @@ LuaManager::LuaManager(
   lua::api::APIs api;
 
   lua["sm"]["VERSION"] = SM_VERSION;
+  lua["sm"]["FOLDER"] = basePath;
 
   // Request functions
   lua["sm"]["request"] = sol::as_table(cgi);
@@ -286,7 +301,7 @@ LuaManager::LuaManager(
 std::pair<bool, std::string> LuaManager::runCode(const std::string code,
                                                  std::string filename) {
   auto result = lua.script(code, sol::script_pass_on_error, "@" + filename);
-  
+
   // Lua error
   if (!result.valid()) {
     sol::error err = result;

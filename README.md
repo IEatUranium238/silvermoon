@@ -27,11 +27,6 @@ Currently I only distribute compiled binaries for Linux (64 bit), as its what I 
 
 ```
 cmake -S . -B build
-```
-
-and after that:
-
-```
 cmake --build build --config Release
 ```
 
@@ -118,16 +113,26 @@ Silvermoon uses Lua 5.1.
 
 **Following functions are removed for safety reasons:**
 
-- os.execute
+Always blocked:
 - os.exit
+- collectgarbage
+
+Blocked unless `SM_ENABLE_RISKY_OPEN="true"`:
+- io.open
+
+Blocked unless `SM_ENABLE_VERY_RISKY_ADVANCED_FS="true"`:
 - os.remove
 - os.rename
 
-- io.open
-- io.popen
-
+Blocked unless `SM_ENABLE_RISKY_CODELOADING="true"`:
+- load
+- loadstring
 - dofile
 - loadfile
+
+Blocked unless `SM_ENABLE_VERY_RISKY_SHELL="true"`:
+- os.execute
+- io.popen
 
 **You can use external .lua files and luarocks packages via include**
 
