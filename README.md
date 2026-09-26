@@ -185,6 +185,7 @@ If everything works correctly with code from example, you should see h1 tag with
 
 ### Other API
 - sm.VERSION - current silvermoon version number
+- sm.FOLDER - current file's folder path
 
 ## Contributions
 
