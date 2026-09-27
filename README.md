@@ -1,6 +1,6 @@
 # Silvermoon
 
-Silvermoon is a HTML5 preprocessor with power of Lua 5.1 via LuaJIT.
+Silvermoon is a HTML preprocessor with power of Lua 5.1 via LuaJIT.
 
 It allows you to embed lua via `<lua>` tags into your markup.
 
@@ -68,7 +68,7 @@ To do it, do following:
 2. Change your server config to use UNIX socket instead, example for Apache:
 
 ```
-SetHandler "unix:/var/run/silvermoon_fcgi.sock"
+SetHandler "proxy:unix:/var/run/silvermoon_fcgi.sock|fcgi://localhost/"
 ```
 
 3. Restart your web server and silvermoon

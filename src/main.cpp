@@ -10,8 +10,6 @@
 
 // UNIX-like specific stuff for unix socks
 #ifndef _WIN32
-#include <sys/socket.h>
-#include <sys/un.h>
 #include <unistd.h>
 
 const char *sockPath = "/var/run/silvermoon_fcgi.sock";
@@ -143,6 +141,10 @@ void worker(FCGX_Request *request) {
     script.erase(0, std::string("proxy:fcgi://127.0.0.1:9000").size());
   }
 
+  if (script.rfind("proxy:fcgi://localhost", 0) == 0) {
+    script.erase(0, std::string("proxy:fcgi://localhost").size());
+  }
+
   // Check if path exists
 
   std::filesystem::path checkpath = script;
@@ -194,38 +196,14 @@ int main() {
 
   // Unix socket setting discovery
   const char *usEnv = std::getenv("SM_USE_UNIXSOCKS");
-  if (usEnv != nullptr) {
-    if (usEnv == "true") {
+  if (usEnv != nullptr && std::strcmp(usEnv, "true") == 0) {
 #ifdef _WIN32
-      std::cerr << "UNIX sockets are only usable on UNIX-like OSes!"
-                << std::endl;
-      return 1;
+    std::cerr << "UNIX sockets are only usable on UNIX-like OSes!" << std::endl;
+    return 1;
 #else
-      usingUnixSockets = true;
-
-      // Create the socket server
-      int server = socket(AF_UNIX, SOCK_STREAM, 0);
-      if (server == -1) {
-        std::cerr << "UNIX socket creation failed" << std::endl;
-        return 1;
-      }
-
-      unlink(sockPath);
-
-      // Some cursed POSIX api stuff
-      struct sockaddr_un addr;
-      std::memset(&addr, 0, sizeof(addr));
-      addr.sun_family = AF_UNIX;
-      std::strncpy(addr.sun_path, sockPath, sizeof(addr.sun_path) - 1);
-
-      // Bind the socket
-      if (bind(server, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-        std::cerr << "UNIX socket bind failed" << std::endl;
-        close(server);
-        return 1;
-      }
+    usingUnixSockets = true;
+    unlink(sockPath); // Clear stale socket
 #endif
-    }
   }
 
   // Safety settings
@@ -234,28 +212,20 @@ int main() {
   const char *openEnv = std::getenv("SM_ENABLE_RISKY_OPEN");
   const char *fsEnv = std::getenv("SM_ENABLE_VERY_RISKY_ADVANCED_FS");
 
-  if (clEnv != nullptr) {
-    if (clEnv == "true") {
-      enableCL = true;
-    }
+  if (clEnv != nullptr && std::strcmp(clEnv, "true") == 0) {
+    enableCL = true;
   }
 
-  if (executionEnv != nullptr) {
-    if (executionEnv == "true") {
-      enableExecute = true;
-    }
+  if (executionEnv != nullptr && std::strcmp(executionEnv, "true") == 0) {
+    enableExecute = true;
   }
 
-  if (openEnv != nullptr) {
-    if (openEnv == "true") {
-      enableOpen = true;
-    }
+  if (openEnv != nullptr && std::strcmp(openEnv, "true") == 0) {
+    enableOpen = true;
   }
 
-  if (fsEnv != nullptr) {
-    if (fsEnv == "true") {
-      enableAdvFs = true;
-    }
+  if (fsEnv != nullptr && std::strcmp(fsEnv, "true") == 0) {
+    enableAdvFs = true;
   }
 
   // FCGI init
@@ -271,7 +241,10 @@ int main() {
     return 1;
   }
 
-  std::cout << "FastCGI server started on port 9000" << std::endl;
+  std::cout << (usingUnixSockets ? "FastCGI server started at UNIX socket at "
+                                   "/var/run/silvermoon_fcgi.sock"
+                                 : "FastCGI server started on TCP port 9000")
+            << std::endl;
 
   while (true) {
     auto *request = new FCGX_Request;
