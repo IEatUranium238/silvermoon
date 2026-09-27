@@ -68,7 +68,7 @@ To do it, do following:
 2. Change your server config to use UNIX socket instead, example for Apache:
 
 ```
-SetHandler "unix:/var/run/silvermoon_fcgi.sock"
+SetHandler "proxy:unix:/var/run/silvermoon_fcgi.sock"
 ```
 
 3. Restart your web server and silvermoon
