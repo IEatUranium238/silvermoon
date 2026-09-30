@@ -6,7 +6,7 @@ It allows you to embed lua via `<lua>` tags into your markup.
 
 > NOTE: Silvermoon is in active development, updates might change APIs and other parts.
 
-[See website documentation on getting started, configuration, APIs and more](silvermoon.up.railway.app/docs)
+[See website documentation on getting started, configuration, APIs and more](https://silvermoon.up.railway.app/docs)
 
 ## Contributions
 
