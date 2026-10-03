@@ -40,7 +40,7 @@ void worker(FCGX_Request *request) {
     std::string value = entry.substr(split + 1);
 
     // HTTP headers start with HTTP_
-    if (key.rfind("HTTP_", 0) == 0) {
+    if (key.starts_with("HTTP_")) {
       std::string headerName = key.substr(5);
       headers[headerName] = value;
       continue;
@@ -137,11 +137,11 @@ void worker(FCGX_Request *request) {
   std::string script = FCGX_GetParam("SCRIPT_FILENAME", request->envp);
 
   // Remove proxy trash if exists
-  if (script.rfind("proxy:fcgi://127.0.0.1:9000", 0) == 0) {
+  if (script.starts_with("proxy:fcgi://127.0.0.1:9000")) {
     script.erase(0, std::string("proxy:fcgi://127.0.0.1:9000").size());
   }
 
-  if (script.rfind("proxy:fcgi://localhost", 0) == 0) {
+  if (script.starts_with("proxy:fcgi://localhost")) {
     script.erase(0, std::string("proxy:fcgi://localhost").size());
   }
 
@@ -160,7 +160,6 @@ void worker(FCGX_Request *request) {
   }
 
   // Do stuff
-
   html::prs::Parser parser;
   pugi::xml_document parsedDoc = parser.readFile(script);
 
@@ -169,10 +168,16 @@ void worker(FCGX_Request *request) {
 
   resHeaders["Status"] = "200";
   resHeaders["Content-Type"] = "text/html";
+  std::string res;
 
-  std::string res = creator.createHTML(parsedDoc, script, cgi, headers, body,
-                                       resHeaders, cookies, params, enableOpen,
-                                       enableAdvFs, enableExecute, enableCL);
+  try {
+    res = creator.createHTML(parsedDoc, script, cgi, headers, body, resHeaders,
+                             cookies, params, enableOpen, enableAdvFs,
+                             enableExecute, enableCL);
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << std::endl;
+    resHeaders["Status"] = "500";
+  }
 
   std::string headerString = "";
 

@@ -196,8 +196,7 @@ I currently don't enforce any coding style but it would be nice if you set your 
 ## Roadmap
 
 - More request, response & security APIs
-- Migrate to use more new c++ 23 features.
 - Sessions
-- Create API that would allow some form of production use
+- Transports (Shared values between pages)
 - Other platform builds
 - ???
