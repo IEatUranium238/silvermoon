@@ -168,7 +168,6 @@ LuaManager::LuaManager(
 
   // API
   lua["sm"] = lua.create_table();
-  lua::api::APIs api;
 
   lua["sm"]["VERSION"] = SM_VERSION;
 
@@ -183,11 +182,23 @@ LuaManager::LuaManager(
   lua["sm"]["body"] = body;
   lua["sm"]["params"] = sol::as_table(params);
 
-  lua["sm"]["get_form_contents"] = [&api, &body, &cgi]() {
-    std::map<std::string, std::string> data;
-    std::string_view query = body;
+  // Ugly get_form_contents related shit because it makes data shit itself for
+  // no reasons if we treat it just like the others.
+  struct FormCtx {
+    std::string body;
+    std::string type;
+    lua::api::APIs api;
+  };
 
-    if (cgi["CONTENT_TYPE"] == "application/x-www-form-urlencoded") {
+  auto ctx = std::make_shared<FormCtx>();
+  ctx->body = body;
+  ctx->type = cgi["CONTENT_TYPE"];
+
+  lua["sm"]["get_form_contents"] = [ctx]() {
+    std::map<std::string, std::string> data;
+
+    if (ctx->type == "application/x-www-form-urlencoded") {
+      std::string_view query = ctx->body;
       while (!query.empty()) {
         size_t end = query.find('&');
         std::string_view param = query.substr(0, end);
@@ -206,8 +217,8 @@ LuaManager::LuaManager(
         }
 
         // URL-decode
-        name = api.unescapeURL(name);
-        value = api.unescapeURL(value);
+        name = ctx->api.unescapeURL(name);
+        value = ctx->api.unescapeURL(value);
 
         data[name] = value;
 
@@ -217,24 +228,29 @@ LuaManager::LuaManager(
 
         query.remove_prefix(end + 1);
       }
-
-      return sol::as_table(data);
     }
+
+    if (ctx->type.starts_with("multipart/form-data")) {
+      data =
+          ctx->api.parseMultipart(ctx->body, ctx->api.getBoundary(ctx->type));
+    }
+
+    return sol::as_table(data);
   };
 
   // Security functions
-  lua["sm"]["escape_html"] = [&api](std::string str) {
+  lua["sm"]["escape_html"] = [this](std::string str) {
     return api.escapeHTML(str);
   };
-  lua["sm"]["unescape_html"] = [&api](std::string str) {
+  lua["sm"]["unescape_html"] = [this](std::string str) {
     return api.unescapeHTML(str);
   };
 
-  lua["sm"]["escape_url"] = [&api](std::string str) {
+  lua["sm"]["escape_url"] = [this](std::string str) {
     return api.escapeURL(str);
   };
 
-  lua["sm"]["unescape_url"] = [&api](std::string str) {
+  lua["sm"]["unescape_url"] = [this](std::string str) {
     return api.unescapeURL(str);
   };
 

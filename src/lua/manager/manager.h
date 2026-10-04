@@ -3,6 +3,7 @@
 #pragma once
 #include <map>
 #include <sol/sol.hpp>
+#include "../api/api.h"
 #include <sstream>
 #include <string>
 #include <utility>
@@ -14,6 +15,7 @@ private:
   sol::state lua;
   std::string printed = "";
   std::string escape(std::string s);
+  lua::api::APIs api;
 
   struct CookieConfig {
     std::optional<std::string> path;
