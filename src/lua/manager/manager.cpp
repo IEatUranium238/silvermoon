@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <iostream>
 #include <map>
+#include <string_view>
 #include <utility>
 
 namespace lua::mngr {
@@ -181,6 +182,45 @@ LuaManager::LuaManager(
   lua["sm"]["header"] = sol::as_table(headers);
   lua["sm"]["body"] = body;
   lua["sm"]["params"] = sol::as_table(params);
+
+  lua["sm"]["get_form_contents"] = [&api, &body, &cgi]() {
+    std::map<std::string, std::string> data;
+    std::string_view query = body;
+
+    if (cgi["CONTENT_TYPE"] == "application/x-www-form-urlencoded") {
+      while (!query.empty()) {
+        size_t end = query.find('&');
+        std::string_view param = query.substr(0, end);
+
+        size_t equals = param.find('=');
+
+        std::string name;
+        std::string value;
+
+        if (equals != std::string_view::npos) {
+          name = std::string(param.substr(0, equals));
+          value = std::string(param.substr(equals + 1));
+        } else {
+          // Parameters without = are treated as empty
+          name = std::string(param);
+        }
+
+        // URL-decode
+        name = api.unescapeURL(name);
+        value = api.unescapeURL(value);
+
+        data[name] = value;
+
+        if (end == std::string_view::npos) {
+          break;
+        }
+
+        query.remove_prefix(end + 1);
+      }
+
+      return sol::as_table(data);
+    }
+  };
 
   // Security functions
   lua["sm"]["escape_html"] = [&api](std::string str) {
