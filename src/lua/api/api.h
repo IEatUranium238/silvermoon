@@ -1,8 +1,8 @@
 #ifndef API_H
 #define API_H
 #pragma once
-#include <string>
 #include <map>
+#include <string>
 
 namespace lua::api {
 class APIs {
@@ -11,6 +11,8 @@ public:
   std::string unescapeHTML(std::string s);
   std::string escapeURL(std::string input);
   std::string unescapeURL(std::string input);
+  std::string escapeAttribute(std::string s);
+  std::string unescapeAttribute(std::string s);
   std::string getBoundary(std::string content_type);
   std::map<std::string, std::string> parseMultipart(std::string body,
                                                     std::string boundary);

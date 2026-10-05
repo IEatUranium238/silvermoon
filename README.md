@@ -195,7 +195,7 @@ I currently don't enforce any coding style but it would be nice if you set your 
 
 ## Roadmap
 
-- More request, response & security APIs
+- security APIs
 - Sessions
 - Transports (Shared values between pages)
 - Other platform builds

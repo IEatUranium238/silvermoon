@@ -242,8 +242,17 @@ LuaManager::LuaManager(
   lua["sm"]["escape_html"] = [this](std::string str) {
     return api.escapeHTML(str);
   };
+
   lua["sm"]["unescape_html"] = [this](std::string str) {
     return api.unescapeHTML(str);
+  };
+
+  lua["sm"]["escape_attribute"] = [this](std::string str) {
+    return api.escapeAttribute(str);
+  };
+  
+  lua["sm"]["unescape_attribute"] = [this](std::string str) {
+    return api.unescapeAttribute(str);
   };
 
   lua["sm"]["escape_url"] = [this](std::string str) {
