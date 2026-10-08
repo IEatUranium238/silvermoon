@@ -16,6 +16,7 @@ private:
   std::string printed = "";
   std::string escape(std::string s);
   lua::api::APIs api;
+  std::map<std::string, std::variant<std::string, double, bool>> cookiesCopy;
 
   struct CookieConfig {
     std::optional<std::string> path;
@@ -39,8 +40,6 @@ function sm_internal_DO_NOT_USE_IN_PROJECTS_serializer(root)
             return tostring(v)
         elseif t == "number" or t == "string" then
             return string.format("%q", v)
-        elseif t == "function" then
-            return "load(" .. string.format("%q", string.dump(v)) .. ", '=imported', 'b')"
         elseif t == "table" then
             local parts = {}
 
@@ -79,4 +78,5 @@ public:
                                        std::string filename);
 };
 } // namespace lua::mngr
+
 #endif

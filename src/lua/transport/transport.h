@@ -16,8 +16,6 @@ function sm_internal_DO_NOT_USE_IN_PROJECTS_serializer(root)
             return tostring(v)
         elseif t == "number" or t == "string" then
             return string.format("%q", v)
-        elseif t == "function" then
-            return "load(" .. string.format("%q", string.dump(v)) .. ", '=imported', 'b')"
         elseif t == "table" then
             local parts = {}
 

@@ -24,31 +24,6 @@ std::string APIs::escapeHTML(std::string s) {
     case '>':
       out += "&gt;";
       break;
-    default:
-      out += c;
-      break;
-    }
-  }
-
-  return out;
-}
-
-// Escape Attribute
-std::string APIs::escapeAttribute(std::string s) {
-  std::string out;
-  out.reserve(s.size());
-
-  for (char c : s) {
-    switch (c) {
-    case '&':
-      out += "&amp;";
-      break;
-    case '<':
-      out += "&lt;";
-      break;
-    case '>':
-      out += "&gt;";
-      break;
     case '"':
       out += "&quot;";
       break;
@@ -66,29 +41,6 @@ std::string APIs::escapeAttribute(std::string s) {
 
 // Unescape HTML
 std::string APIs::unescapeHTML(std::string s) {
-  std::string out;
-  out.reserve(s.size());
-
-  for (size_t i = 0; i < s.size(); ++i) {
-    if (s.compare(i, 5, "&amp;") == 0) {
-      out += '&';
-      i += 4;
-    } else if (s.compare(i, 4, "&lt;") == 0) {
-      out += '<';
-      i += 3;
-    } else if (s.compare(i, 4, "&gt;") == 0) {
-      out += '>';
-      i += 3;
-    } else {
-      out += s[i];
-    }
-  }
-
-  return out;
-}
-
-// Unescape Attribute
-std::string APIs::unescapeAttribute(std::string s) {
   std::string out;
   out.reserve(s.size());
 

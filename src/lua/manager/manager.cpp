@@ -116,7 +116,7 @@ LuaManager::LuaManager(
   };
 
   // Transport prepare
-  // lua.script(serializer);
+  lua.script(serializer);
 
   // Custom data types
   lua.new_usertype<CookieConfig>(
@@ -251,14 +251,6 @@ LuaManager::LuaManager(
     return api.unescapeHTML(str);
   };
 
-  lua["sm"]["escape_attribute"] = [this](std::string str) {
-    return api.escapeAttribute(str);
-  };
-
-  lua["sm"]["unescape_attribute"] = [this](std::string str) {
-    return api.unescapeAttribute(str);
-  };
-
   lua["sm"]["escape_url"] = [this](std::string str) {
     return api.escapeURL(str);
   };
@@ -365,29 +357,31 @@ LuaManager::LuaManager(
           "=deleted; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/";
     }
   };
-  
-  std::cerr << "Lua manager inited!" << std::endl;
+
   // Transport
-  // lua["sm"]["transport"]["exists"] = [&transport](std::string name) {
-  //   return transport.exists(name);
-  // };
+  lua["sm"]["transport"] = lua.create_table();
+  lua["sm"]["transport"]["exists"] = [&transport](std::string name) {
+    return transport.exists(name);
+  };
 
-  // lua["sm"]["transport"]["delete"] = [&transport](std::string name) {
-  //   return transport.remove(name);
-  // };
+  lua["sm"]["transport"]["delete"] = [&transport](std::string name) {
+    return transport.remove(name);
+  };
 
-  // lua["sm"]["transport"]["set"] = [&transport, this](std::string name, sol::object data) {
-  //   sol::function serialize = lua["sm_internal_DO_NOT_USE_IN_PROJECTS_serializer"];
-  //   std::string code = serialize(data);
+  lua["sm"]["transport"]["set"] = [&transport, this](std::string name,
+                                                     sol::object data) {
+    sol::protected_function serialize =
+        lua["sm_internal_DO_NOT_USE_IN_PROJECTS_serializer"];
+    std::string code = serialize(data);
 
-  //   return transport.set(name,code);
-  // };
+    transport.set(name, code);
+  };
 
-  // lua["sm"]["transport"]["get"] = [&transport, this](std::string name) {
-  //   std::string code = transport.get(name);
+  lua["sm"]["transport"]["get"] = [&transport, this](std::string name) {
+    std::string code = transport.get(name);
 
-  //   return lua.script(code);
-  // };
+    return lua.script(code);
+  };
 }
 
 /// @brief Execute lua string code
