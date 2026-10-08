@@ -1,5 +1,6 @@
 #include "./manager.h"
 #include "../api/api.h"
+#include "../transport/transport.h"
 #include <filesystem>
 #include <iostream>
 #include <map>
@@ -47,7 +48,7 @@ LuaManager::LuaManager(
     std::ostringstream &out,
     std::map<std::string, std::variant<std::string, double, bool>> cookies,
     std::map<std::string, std::string> params, bool allowOpen, bool allowAdvFS,
-    bool allowExecute, bool allowDynamicCode) {
+    bool allowExecute, bool allowDynamicCode, lua::trpt::Transport &transport) {
   // Open libraries
   lua.open_libraries(sol::lib::base, sol::lib::coroutine, sol::lib::package,
                      sol::lib::string, sol::lib::os, sol::lib::math,
@@ -113,6 +114,9 @@ LuaManager::LuaManager(
 
     printed += '\n';
   };
+
+  // Transport prepare
+  // lua.script(serializer);
 
   // Custom data types
   lua.new_usertype<CookieConfig>(
@@ -250,7 +254,7 @@ LuaManager::LuaManager(
   lua["sm"]["escape_attribute"] = [this](std::string str) {
     return api.escapeAttribute(str);
   };
-  
+
   lua["sm"]["unescape_attribute"] = [this](std::string str) {
     return api.unescapeAttribute(str);
   };
@@ -361,6 +365,29 @@ LuaManager::LuaManager(
           "=deleted; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/";
     }
   };
+  
+  std::cerr << "Lua manager inited!" << std::endl;
+  // Transport
+  // lua["sm"]["transport"]["exists"] = [&transport](std::string name) {
+  //   return transport.exists(name);
+  // };
+
+  // lua["sm"]["transport"]["delete"] = [&transport](std::string name) {
+  //   return transport.remove(name);
+  // };
+
+  // lua["sm"]["transport"]["set"] = [&transport, this](std::string name, sol::object data) {
+  //   sol::function serialize = lua["sm_internal_DO_NOT_USE_IN_PROJECTS_serializer"];
+  //   std::string code = serialize(data);
+
+  //   return transport.set(name,code);
+  // };
+
+  // lua["sm"]["transport"]["get"] = [&transport, this](std::string name) {
+  //   std::string code = transport.get(name);
+
+  //   return lua.script(code);
+  // };
 }
 
 /// @brief Execute lua string code

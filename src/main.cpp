@@ -1,6 +1,7 @@
 #include "./html/creator/creator.h"
 #include "./html/parser/parser.h"
 #include "./lua/api/api.h"
+#include "./lua/transport/transport.h"
 #include <fcgiapp.h>
 #include <filesystem>
 #include <iostream>
@@ -19,6 +20,8 @@ bool enableOpen = false;
 bool enableExecute = false;
 bool enableCL = false;
 bool enableAdvFs = false;
+
+lua::trpt::Transport transport;
 
 void worker(FCGX_Request *request) {
   std::map<std::string, std::string> cgi;
@@ -173,7 +176,7 @@ void worker(FCGX_Request *request) {
   try {
     res = creator.createHTML(parsedDoc, script, cgi, headers, body, resHeaders,
                              cookies, params, enableOpen, enableAdvFs,
-                             enableExecute, enableCL);
+                             enableExecute, enableCL, transport);
   } catch (const std::exception &e) {
     std::cerr << e.what() << std::endl;
     resHeaders["Status"] = "500";

@@ -80,6 +80,8 @@ add_executable(silvermoon
     src/html/creator/creator.h
     src/lua/api/api.cpp
     src/lua/api/api.h
+    src/lua/transport/transport.h
+    src/lua/transport/transport.cpp
 )
 
 # Link things

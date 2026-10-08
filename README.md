@@ -195,8 +195,7 @@ I currently don't enforce any coding style but it would be nice if you set your 
 
 ## Roadmap
 
-- security APIs
-- Sessions
+- Sessions, CSRF tokens
 - Transports (Shared values between pages)
 - Other platform builds
 - ???

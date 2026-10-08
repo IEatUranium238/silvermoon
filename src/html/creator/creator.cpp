@@ -136,11 +136,11 @@ std::string Creator::createHTML(
     std::map<std::string, std::string> &httpHeaders,
     std::map<std::string, std::variant<std::string, double, bool>> cookies,
     std::map<std::string, std::string> params, bool allowOpen, bool allowAdvFS,
-    bool allowExecute, bool allowDynamicCode) {
+    bool allowExecute, bool allowDynamicCode, lua::trpt::Transport &transport) {
   std::ostringstream out;
   lua::mngr::LuaManager script(fp, cgi, headers, body, httpHeaders, stopper,
                                out, cookies, params, allowOpen, allowAdvFS,
-                               allowExecute, allowDynamicCode);
+                               allowExecute, allowDynamicCode, transport);
 
   error = false;
 

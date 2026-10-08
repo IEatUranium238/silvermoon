@@ -2,6 +2,7 @@
 #define CREATOR_H
 #pragma once
 #include "../../lua/manager/manager.h"
+#include "../../lua/transport/transport.h"
 #include <map>
 #include <pugixml.hpp>
 #include <string>
@@ -23,7 +24,8 @@ public:
       std::map<std::string, std::string> &httpHeaders,
       std::map<std::string, std::variant<std::string, double, bool>> cookies,
       std::map<std::string, std::string> params, bool allowOpen,
-      bool allowAdvFS, bool allowExecute, bool allowDynamicCode);
+      bool allowAdvFS, bool allowExecute, bool allowDynamicCode,
+      lua::trpt::Transport &transport);
 };
 } // namespace html::crt
 
