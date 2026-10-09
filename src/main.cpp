@@ -179,7 +179,74 @@ void worker(FCGX_Request *request) {
                              enableExecute, enableCL, transport);
   } catch (const std::exception &e) {
     std::cerr << e.what() << std::endl;
+
     resHeaders["Status"] = "500";
+    res =
+        "<html>"
+        "<head>"
+        "<title>Silvermoon Error</title>"
+        "<style>"
+        "body {"
+        "    font-family: sans-serif;"
+        "    max-width: 800px;"
+        "    margin: 40px auto;"
+        "    padding: 0 20px;"
+        "    color: #333;"
+        "    background: #f5f5f5;"
+        "}"
+        "h1 {"
+        "    color: #b42318;"
+        "}"
+        "h2 {"
+        "    margin-top: 30px;"
+        "}"
+        "h3 {"
+        "    margin-bottom: 5px;"
+        "}"
+        "p {"
+        "    line-height: 1.5;"
+        "}"
+        "hr {"
+        "    margin: 30px 0;"
+        "    border: 0;"
+        "    border-top: 1px solid #ccc;"
+        "}"
+        "small {"
+        "    color: #777;"
+        "}"
+        "</style>"
+        "</head>"
+        "<body>"
+
+        "<h1>Internal Silvermoon error</h1>"
+
+        "<p>Silvermoon encountered an error while trying to preprocess this "
+        "HTML document.</p>"
+
+        "<hr/>"
+
+        "<h2>What to Do</h2>"
+
+        "<h3>Site owner / Developer</h3>"
+        "<p>"
+        "Check Silvermoon and see if it produced any errors. If you are sure "
+        "this is a bug on Silvermoon's side, please open issue on our <a "
+        "href=\"https://github.com/IEatUranium238/silvermoon/\">github page</a>"
+        "</p>"
+
+        "<h3>Visitor</h3>"
+        "<p>"
+        "Try refreshing the page or returning to the previous page. "
+        "If the problem persists, contact the site owner."
+        "</p>"
+
+        "<hr/>"
+
+        "<p><small>"
+        "Silvermoon version " SM_VERSION "</small></p>"
+
+        "</body>"
+        "</html>";
   }
 
   std::string headerString = "";

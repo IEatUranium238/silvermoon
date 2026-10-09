@@ -195,6 +195,7 @@ I currently don't enforce any coding style but it would be nice if you set your 
 
 ## Roadmap
 
+- Make own HTML parser, wich seperates normal html and lua tag contents.
 - Sessions, CSRF tokens
 - Transports (Shared values between pages)
 - Other platform builds

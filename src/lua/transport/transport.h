@@ -1,6 +1,7 @@
 #ifndef TRANSPORT_H
 #define TRANSPORT_H
 #pragma once
+#include <mutex>
 #include <sol/sol.hpp>
 #include <string>
 
@@ -8,6 +9,7 @@ namespace lua::trpt {
 class Transport {
 private:
   sol::state lua;
+  std::mutex mtx;
   std::string serializer = R"LUA(
 function sm_internal_DO_NOT_USE_IN_PROJECTS_serializer(root)
     local function ser(v)
@@ -48,4 +50,5 @@ public:
   void set(std::string name, std::string code);
 };
 } // namespace lua::trpt
+
 #endif
