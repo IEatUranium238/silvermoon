@@ -25,7 +25,7 @@ public:
       std::map<std::string, std::variant<std::string, double, bool>> cookies,
       std::map<std::string, std::string> params, bool allowOpen,
       bool allowAdvFS, bool allowExecute, bool allowDynamicCode,
-      lua::trpt::Transport &transport);
+      lua::trpt::Transport &transport, std::map<std::string, std::string> formData);
 };
 } // namespace html::crt
 

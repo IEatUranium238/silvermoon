@@ -48,7 +48,8 @@ LuaManager::LuaManager(
     std::ostringstream &out,
     std::map<std::string, std::variant<std::string, double, bool>> cookies,
     std::map<std::string, std::string> params, bool allowOpen, bool allowAdvFS,
-    bool allowExecute, bool allowDynamicCode, lua::trpt::Transport &transport) {
+    bool allowExecute, bool allowDynamicCode, lua::trpt::Transport &transport,
+    std::map<std::string, std::string> formData) {
   // Open libraries
   lua.open_libraries(sol::lib::base, sol::lib::coroutine, sol::lib::package,
                      sol::lib::string, sol::lib::os, sol::lib::math,
@@ -185,62 +186,7 @@ LuaManager::LuaManager(
   lua["sm"]["header"] = sol::as_table(headers);
   lua["sm"]["body"] = body;
   lua["sm"]["params"] = sol::as_table(params);
-
-  // Ugly get_form_contents related shit because it makes data shit itself for
-  // no reasons if we treat it just like the others.
-  struct FormCtx {
-    std::string body;
-    std::string type;
-    lua::api::APIs api;
-  };
-
-  auto ctx = std::make_shared<FormCtx>();
-  ctx->body = body;
-  ctx->type = cgi["CONTENT_TYPE"];
-
-  lua["sm"]["get_form_contents"] = [ctx]() {
-    std::map<std::string, std::string> data;
-
-    if (ctx->type == "application/x-www-form-urlencoded") {
-      std::string_view query = ctx->body;
-      while (!query.empty()) {
-        size_t end = query.find('&');
-        std::string_view param = query.substr(0, end);
-
-        size_t equals = param.find('=');
-
-        std::string name;
-        std::string value;
-
-        if (equals != std::string_view::npos) {
-          name = std::string(param.substr(0, equals));
-          value = std::string(param.substr(equals + 1));
-        } else {
-          // Parameters without = are treated as empty
-          name = std::string(param);
-        }
-
-        // URL-decode
-        name = ctx->api.unescapeURL(name);
-        value = ctx->api.unescapeURL(value);
-
-        data[name] = value;
-
-        if (end == std::string_view::npos) {
-          break;
-        }
-
-        query.remove_prefix(end + 1);
-      }
-    }
-
-    if (ctx->type.starts_with("multipart/form-data")) {
-      data =
-          ctx->api.parseMultipart(ctx->body, ctx->api.getBoundary(ctx->type));
-    }
-
-    return sol::as_table(data);
-  };
+  lua["sm"]["form_contents"] = sol::as_table(formData);
 
   // Security functions
   lua["sm"]["escape_html"] = [this](std::string str) {
@@ -371,21 +317,21 @@ LuaManager::LuaManager(
   // Internal c++ function which does all the dirty work
   lua["sm"]["transport"]["internal_dont_use_please_raw_set"] =
       [&transport, this](std::string name, sol::object data) -> std::string {
-        sol::protected_function serialize =
-            lua["sm_internal_DO_NOT_USE_IN_PROJECTS_serializer"];
+    sol::protected_function serialize =
+        lua["sm_internal_DO_NOT_USE_IN_PROJECTS_serializer"];
 
-        sol::protected_function_result result = serialize(data, name);
-        std::string resErr = " ";
+    sol::protected_function_result result = serialize(data, name);
+    std::string resErr = " ";
 
-        if (!result.valid()) {
-          sol::error err = result;
-          resErr = "Failed to store '" + name + "': " + err.what();
-          return resErr;
-        }
+    if (!result.valid()) {
+      sol::error err = result;
+      resErr = "Failed to store '" + name + "': " + err.what();
+      return resErr;
+    }
 
-        transport.set(name, result.get<std::string>());
-        return resErr;
-      };
+    transport.set(name, result.get<std::string>());
+    return resErr;
+  };
 
   // Set user facing set API for error handeling
   lua.script(setAPI);

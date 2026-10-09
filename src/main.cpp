@@ -28,6 +28,7 @@ void worker(FCGX_Request *request) {
   std::map<std::string, std::string> headers;
   std::map<std::string, std::variant<std::string, double, bool>> cookies;
   std::map<std::string, std::string> params;
+  std::map<std::string, std::string> formdata;
   std::string body;
 
   // CGI variables
@@ -136,6 +137,44 @@ void worker(FCGX_Request *request) {
     body += std::string(buffer, read);
   }
 
+  // Parse form body
+  if (cgi["CONTENT_TYPE"] == "application/x-www-form-urlencoded") {
+    std::string_view query = body;
+    while (!query.empty()) {
+      size_t end = query.find('&');
+      std::string_view param = query.substr(0, end);
+
+      size_t equals = param.find('=');
+
+      std::string name;
+      std::string value;
+
+      if (equals != std::string_view::npos) {
+        name = std::string(param.substr(0, equals));
+        value = std::string(param.substr(equals + 1));
+      } else {
+        // Parameters without = are treated as empty
+        name = std::string(param);
+      }
+
+      // URL-decode
+      name = urlApi.unescapeURL(name);
+      value = urlApi.unescapeURL(value);
+
+      formdata[name] = value;
+
+      if (end == std::string_view::npos) {
+        break;
+      }
+
+      query.remove_prefix(end + 1);
+    }
+  }
+
+  if (cgi["CONTENT_TYPE"].starts_with("multipart/form-data")) {
+    formdata = urlApi.parseMultipart(body, urlApi.getBoundary(cgi["CONTENT_TYPE"]));
+  }
+
   // Find the script
   std::string script = FCGX_GetParam("SCRIPT_FILENAME", request->envp);
 
@@ -176,7 +215,7 @@ void worker(FCGX_Request *request) {
   try {
     res = creator.createHTML(parsedDoc, script, cgi, headers, body, resHeaders,
                              cookies, params, enableOpen, enableAdvFs,
-                             enableExecute, enableCL, transport);
+                             enableExecute, enableCL, transport, formdata);
   } catch (const std::exception &e) {
     std::cerr << e.what() << std::endl;
 

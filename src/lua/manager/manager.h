@@ -80,7 +80,7 @@ public:
       std::map<std::string, std::variant<std::string, double, bool>> cookies,
       std::map<std::string, std::string> params, bool allowOpen,
       bool allowAdvFS, bool allowExecute, bool allowDynamicCode,
-      lua::trpt::Transport &transport);
+      lua::trpt::Transport &transport, std::map<std::string, std::string> formData);
   std::pair<bool, std::string> runCode(const std::string code,
                                        std::string filename);
 };
