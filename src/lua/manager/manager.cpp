@@ -368,14 +368,27 @@ LuaManager::LuaManager(
     return transport.remove(name);
   };
 
-  lua["sm"]["transport"]["set"] = [&transport, this](std::string name,
-                                                     sol::object data) {
-    sol::protected_function serialize =
-        lua["sm_internal_DO_NOT_USE_IN_PROJECTS_serializer"];
-    std::string code = serialize(data);
+  // Internal c++ function which does all the dirty work
+  lua["sm"]["transport"]["internal_dont_use_please_raw_set"] =
+      [&transport, this](std::string name, sol::object data) -> std::string {
+        sol::protected_function serialize =
+            lua["sm_internal_DO_NOT_USE_IN_PROJECTS_serializer"];
 
-    transport.set(name, code);
-  };
+        sol::protected_function_result result = serialize(data, name);
+        std::string resErr = " ";
+
+        if (!result.valid()) {
+          sol::error err = result;
+          resErr = "Failed to store '" + name + "': " + err.what();
+          return resErr;
+        }
+
+        transport.set(name, result.get<std::string>());
+        return resErr;
+      };
+
+  // Set user facing set API for error handeling
+  lua.script(setAPI);
 
   lua["sm"]["transport"]["get"] = [&transport, this](std::string name) {
     std::string code = transport.get(name);

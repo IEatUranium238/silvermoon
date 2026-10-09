@@ -56,7 +56,7 @@ function sm_internal_DO_NOT_USE_IN_PROJECTS_serializer(root)
 
             return code
         else
-            error("Cannot serialize type: " .. t)
+            error("cannot store type: " .. t, 0)
         end
     end
 
@@ -64,8 +64,15 @@ function sm_internal_DO_NOT_USE_IN_PROJECTS_serializer(root)
 end
 )LUA";
 
+  std::string setAPI = R"LUA(
+  function sm.transport.set(name, data)
+    local err = sm.transport.internal_dont_use_please_raw_set(name, data)
+    if err ~= " " then error(err, 2) end
+  end
+)LUA";
+
 public:
-  LuaManager(
+  LuaManager(   
       std::string basePath, std::map<std::string, std::string> cgi,
       std::map<std::string, std::string> headers, std::string body,
       std::map<std::string, std::string> &httpHeaders, bool &error,

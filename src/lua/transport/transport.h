@@ -33,8 +33,6 @@ function sm_internal_DO_NOT_USE_IN_PROJECTS_serializer(root)
             end
 
             return code
-        else
-            error("Cannot serialize type: " .. t)
         end
     end
 
