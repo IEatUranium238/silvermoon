@@ -137,8 +137,10 @@ void worker(FCGX_Request *request) {
     body += std::string(buffer, read);
   }
 
+
+  std::string type = cgi["CONTENT_TYPE"];
   // Parse form body
-  if (cgi["CONTENT_TYPE"] == "application/x-www-form-urlencoded") {
+  if (type == "application/x-www-form-urlencoded") {
     std::string_view query = body;
     while (!query.empty()) {
       size_t end = query.find('&');
@@ -171,8 +173,8 @@ void worker(FCGX_Request *request) {
     }
   }
 
-  if (cgi["CONTENT_TYPE"].starts_with("multipart/form-data")) {
-    formdata = urlApi.parseMultipart(body, urlApi.getBoundary(cgi["CONTENT_TYPE"]));
+  if (type.starts_with("multipart/form-data")) {
+    formdata = urlApi.parseMultipart(body, urlApi.getBoundary(type));
   }
 
   // Find the script
