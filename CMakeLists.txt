@@ -4,7 +4,13 @@ project(silvermoon VERSION 0.4.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+# Prefer static libs
+if(WIN32)
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ".lib" ".a" ${CMAKE_FIND_LIBRARY_SUFFIXES})
+else()
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+endif()
 
 # MSVC runtime
 if(MSVC)
@@ -16,11 +22,10 @@ find_package(pugixml REQUIRED)
 
 find_path(FCGI_INCLUDE_DIR NAMES fastcgi.h fcgio.h)
 
-# Link FCGI
 if(WIN32)
-    find_library(FCGI_LIB NAMES fcgi libfcgi)
+    find_library(FCGI_LIB NAMES libfcgi fcgi)
 else()
-    find_library(FCGI_LIB NAMES fcgi)
+    find_library(FCGI_LIB NAMES libfcgi.a)
 endif()
 
 if(NOT FCGI_INCLUDE_DIR OR NOT FCGI_LIB)
