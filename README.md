@@ -16,9 +16,8 @@ I currently don't enforce any coding style but it would be nice if you set your 
 
 ## Roadmap
 
-- More request, response & security APIs
-- Migrate to use more new c++ 23 features.
-- Sessions
-- Create API that would allow some form of production use
+- Make own HTML parser, wich seperates normal html and lua tag contents.
+- Sessions, CSRF tokens
+- Transports (Shared values between pages)
 - Other platform builds
 - ???

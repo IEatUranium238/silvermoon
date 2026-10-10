@@ -1,6 +1,7 @@
 #include "./html/creator/creator.h"
 #include "./html/parser/parser.h"
 #include "./lua/api/api.h"
+#include "./lua/transport/transport.h"
 #include <fcgiapp.h>
 #include <filesystem>
 #include <iostream>
@@ -20,11 +21,14 @@ bool enableExecute = false;
 bool enableCL = false;
 bool enableAdvFs = false;
 
+lua::trpt::Transport transport;
+
 void worker(FCGX_Request *request) {
   std::map<std::string, std::string> cgi;
   std::map<std::string, std::string> headers;
   std::map<std::string, std::variant<std::string, double, bool>> cookies;
   std::map<std::string, std::string> params;
+  std::map<std::string, std::string> formdata;
   std::string body;
 
   // CGI variables
@@ -40,7 +44,7 @@ void worker(FCGX_Request *request) {
     std::string value = entry.substr(split + 1);
 
     // HTTP headers start with HTTP_
-    if (key.rfind("HTTP_", 0) == 0) {
+    if (key.starts_with("HTTP_")) {
       std::string headerName = key.substr(5);
       headers[headerName] = value;
       continue;
@@ -133,15 +137,55 @@ void worker(FCGX_Request *request) {
     body += std::string(buffer, read);
   }
 
+
+  std::string type = cgi["CONTENT_TYPE"];
+  // Parse form body
+  if (type == "application/x-www-form-urlencoded") {
+    std::string_view query = body;
+    while (!query.empty()) {
+      size_t end = query.find('&');
+      std::string_view param = query.substr(0, end);
+
+      size_t equals = param.find('=');
+
+      std::string name;
+      std::string value;
+
+      if (equals != std::string_view::npos) {
+        name = std::string(param.substr(0, equals));
+        value = std::string(param.substr(equals + 1));
+      } else {
+        // Parameters without = are treated as empty
+        name = std::string(param);
+      }
+
+      // URL-decode
+      name = urlApi.unescapeURL(name);
+      value = urlApi.unescapeURL(value);
+
+      formdata[name] = value;
+
+      if (end == std::string_view::npos) {
+        break;
+      }
+
+      query.remove_prefix(end + 1);
+    }
+  }
+
+  if (type.starts_with("multipart/form-data")) {
+    formdata = urlApi.parseMultipart(body, urlApi.getBoundary(type));
+  }
+
   // Find the script
   std::string script = FCGX_GetParam("SCRIPT_FILENAME", request->envp);
 
   // Remove proxy trash if exists
-  if (script.rfind("proxy:fcgi://127.0.0.1:9000", 0) == 0) {
+  if (script.starts_with("proxy:fcgi://127.0.0.1:9000")) {
     script.erase(0, std::string("proxy:fcgi://127.0.0.1:9000").size());
   }
 
-  if (script.rfind("proxy:fcgi://localhost", 0) == 0) {
+  if (script.starts_with("proxy:fcgi://localhost")) {
     script.erase(0, std::string("proxy:fcgi://localhost").size());
   }
 
@@ -160,7 +204,6 @@ void worker(FCGX_Request *request) {
   }
 
   // Do stuff
-
   html::prs::Parser parser;
   pugi::xml_document parsedDoc = parser.readFile(script);
 
@@ -169,10 +212,83 @@ void worker(FCGX_Request *request) {
 
   resHeaders["Status"] = "200";
   resHeaders["Content-Type"] = "text/html";
+  std::string res;
 
-  std::string res = creator.createHTML(parsedDoc, script, cgi, headers, body,
-                                       resHeaders, cookies, params, enableOpen,
-                                       enableAdvFs, enableExecute, enableCL);
+  try {
+    res = creator.createHTML(parsedDoc, script, cgi, headers, body, resHeaders,
+                             cookies, params, enableOpen, enableAdvFs,
+                             enableExecute, enableCL, transport, formdata);
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << std::endl;
+
+    resHeaders["Status"] = "500";
+    res =
+        "<html>"
+        "<head>"
+        "<title>Silvermoon Error</title>"
+        "<style>"
+        "body {"
+        "    font-family: sans-serif;"
+        "    max-width: 800px;"
+        "    margin: 40px auto;"
+        "    padding: 0 20px;"
+        "    color: #333;"
+        "    background: #f5f5f5;"
+        "}"
+        "h1 {"
+        "    color: #b42318;"
+        "}"
+        "h2 {"
+        "    margin-top: 30px;"
+        "}"
+        "h3 {"
+        "    margin-bottom: 5px;"
+        "}"
+        "p {"
+        "    line-height: 1.5;"
+        "}"
+        "hr {"
+        "    margin: 30px 0;"
+        "    border: 0;"
+        "    border-top: 1px solid #ccc;"
+        "}"
+        "small {"
+        "    color: #777;"
+        "}"
+        "</style>"
+        "</head>"
+        "<body>"
+
+        "<h1>Internal Silvermoon error</h1>"
+
+        "<p>Silvermoon encountered an error while trying to preprocess this "
+        "HTML document.</p>"
+
+        "<hr/>"
+
+        "<h2>What to Do</h2>"
+
+        "<h3>Site owner / Developer</h3>"
+        "<p>"
+        "Check Silvermoon and see if it produced any errors. If you are sure "
+        "this is a bug on Silvermoon's side, please open issue on our <a "
+        "href=\"https://github.com/IEatUranium238/silvermoon/\">github page</a>"
+        "</p>"
+
+        "<h3>Visitor</h3>"
+        "<p>"
+        "Try refreshing the page or returning to the previous page. "
+        "If the problem persists, contact the site owner."
+        "</p>"
+
+        "<hr/>"
+
+        "<p><small>"
+        "Silvermoon version " SM_VERSION "</small></p>"
+
+        "</body>"
+        "</html>";
+  }
 
   std::string headerString = "";
 

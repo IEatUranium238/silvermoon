@@ -1,8 +1,10 @@
 #include "./manager.h"
 #include "../api/api.h"
+#include "../transport/transport.h"
 #include <filesystem>
 #include <iostream>
 #include <map>
+#include <string_view>
 #include <utility>
 
 namespace lua::mngr {
@@ -46,7 +48,8 @@ LuaManager::LuaManager(
     std::ostringstream &out,
     std::map<std::string, std::variant<std::string, double, bool>> cookies,
     std::map<std::string, std::string> params, bool allowOpen, bool allowAdvFS,
-    bool allowExecute, bool allowDynamicCode) {
+    bool allowExecute, bool allowDynamicCode, lua::trpt::Transport &transport,
+    std::map<std::string, std::string> formData) {
   // Open libraries
   lua.open_libraries(sol::lib::base, sol::lib::coroutine, sol::lib::package,
                      sol::lib::string, sol::lib::os, sol::lib::math,
@@ -113,6 +116,9 @@ LuaManager::LuaManager(
     printed += '\n';
   };
 
+  // Transport prepare
+  lua.script(serializer);
+
   // Custom data types
   lua.new_usertype<CookieConfig>(
       "CookieConfig", sol::call_constructor,
@@ -167,7 +173,6 @@ LuaManager::LuaManager(
 
   // API
   lua["sm"] = lua.create_table();
-  lua::api::APIs api;
 
   lua["sm"]["VERSION"] = SM_VERSION;
 
@@ -181,20 +186,22 @@ LuaManager::LuaManager(
   lua["sm"]["header"] = sol::as_table(headers);
   lua["sm"]["body"] = body;
   lua["sm"]["params"] = sol::as_table(params);
+  lua["sm"]["form_contents"] = sol::as_table(formData);
 
   // Security functions
-  lua["sm"]["escape_html"] = [&api](std::string str) {
+  lua["sm"]["escape_html"] = [this](std::string str) {
     return api.escapeHTML(str);
   };
-  lua["sm"]["unescape_html"] = [&api](std::string str) {
+
+  lua["sm"]["unescape_html"] = [this](std::string str) {
     return api.unescapeHTML(str);
   };
 
-  lua["sm"]["escape_url"] = [&api](std::string str) {
+  lua["sm"]["escape_url"] = [this](std::string str) {
     return api.escapeURL(str);
   };
 
-  lua["sm"]["unescape_url"] = [&api](std::string str) {
+  lua["sm"]["unescape_url"] = [this](std::string str) {
     return api.unescapeURL(str);
   };
 
@@ -295,6 +302,44 @@ LuaManager::LuaManager(
           name +
           "=deleted; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/";
     }
+  };
+
+  // Transport
+  lua["sm"]["transport"] = lua.create_table();
+  lua["sm"]["transport"]["exists"] = [&transport](std::string name) {
+    return transport.exists(name);
+  };
+
+  lua["sm"]["transport"]["delete"] = [&transport](std::string name) {
+    return transport.remove(name);
+  };
+
+  // Internal c++ function which does all the dirty work
+  lua["sm"]["transport"]["internal_dont_use_please_raw_set"] =
+      [&transport, this](std::string name, sol::object data) -> std::string {
+    sol::protected_function serialize =
+        lua["sm_internal_DO_NOT_USE_IN_PROJECTS_serializer"];
+
+    sol::protected_function_result result = serialize(data, name);
+    std::string resErr = " ";
+
+    if (!result.valid()) {
+      sol::error err = result;
+      resErr = "Failed to store '" + name + "': " + err.what();
+      return resErr;
+    }
+
+    transport.set(name, result.get<std::string>());
+    return resErr;
+  };
+
+  // Set user facing set API for error handeling
+  lua.script(setAPI);
+
+  lua["sm"]["transport"]["get"] = [&transport, this](std::string name) {
+    std::string code = transport.get(name);
+
+    return lua.script(code);
   };
 }
 

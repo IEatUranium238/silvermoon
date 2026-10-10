@@ -1,6 +1,7 @@
 #include "./api.h"
 #include <cctype>
 #include <iomanip>
+#include <map>
 #include <sstream>
 #include <string>
 
@@ -108,6 +109,76 @@ std::string APIs::unescapeURL(std::string input) {
   }
 
   return out;
+}
+
+// multipart parsing
+
+std::string APIs::getBoundary(std::string content_type) {
+  std::string key = "boundary=";
+
+  size_t pos = content_type.find(key);
+
+  if (pos == std::string::npos) {
+    return "";
+  }
+
+  std::string b = content_type.substr(pos + key.size());
+
+  if (!b.empty() && b[0] == '"') {
+    size_t end = b.find('"', 1);
+    return b.substr(1, end == std::string::npos ? end : end - 1);
+  }
+
+  return b.substr(0, b.find(';'));
+}
+
+std::map<std::string, std::string> APIs::parseMultipart(std::string body,
+                                                        std::string boundary) {
+  std::map<std::string, std::string> result;
+  std::string div = "--" + boundary;
+
+  size_t pos = body.find(div);
+  while (pos != std::string::npos) {
+    pos += div.size();
+
+    if (body.compare(pos, 2, "--") == 0) {
+      break;
+    }
+
+    pos += 2; // skip CRLF
+
+    size_t hEnd = body.find("\r\n\r\n", pos);
+
+    if (hEnd == std::string::npos) {
+      break;
+    }
+
+    std::string headers = body.substr(pos, hEnd - pos);
+
+    size_t dataStart = hEnd + 4;
+    size_t next = body.find("\r\n" + div, dataStart);
+
+    if (next == std::string::npos) {
+      break;
+    }
+
+    // Name fields
+    std::string key = "; name=\"";
+    size_t n = headers.find(key);
+
+    if (n != std::string::npos) {
+      n += key.size();
+      size_t nEnd = headers.find('"', n);
+
+      if (nEnd != std::string::npos) {
+        result[headers.substr(n, nEnd - n)] =
+            body.substr(dataStart, next - dataStart);
+      }
+    }
+
+    pos = next + 2; // Continue to next
+  }
+  return result;
 }
 
 } // namespace lua::api
