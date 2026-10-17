@@ -1,545 +1,293 @@
 #include <algorithm>
 #include <cctype>
 #include <fstream>
-#include <iostream>
-#include <pugixml.hpp>
 #include <string>
-#include <unordered_set>
 #include <vector>
 
 #include "./parser.h"
 
 namespace html::prs {
 
-// CAUTION: This shit is ugly as fuck
-// Keep small children and pets away from it, IT WILL EAT THEM
+// RIP "CAUTION: This shit is ugly as fuck" comment
+// It died during the refactoring.
+//
+// 20.9.2026 - 17.10.2026, you will be missed
+// "Keep small children and pets away from it, IT WILL EAT THEM"
 
-// Escape CDATA
-std::string Parser::escapeCData(std::string input) {
-  std::string out;
-  size_t pos = 0;
+void parseContents(std::string contents,
+                   std::vector<Parser::parseItem> &parsedContent) {
+  size_t n = contents.size();
 
-  while (true) {
-    size_t found = input.find("]]>", pos);
-
-    if (found == std::string::npos) {
-      out += input.substr(pos);
-      break;
-    }
-
-    out += input.substr(pos, found - pos);
-    out += "]]]]><![CDATA[>";
-    pos = found + 3;
+  // lowercase it for matching
+  std::string lower = contents;
+  for (size_t k = 0; k < n; k += 1) {
+    lower[k] = std::tolower(static_cast<unsigned char>(lower[k]));
   }
 
-  return out;
-}
+  size_t i = 0;
+  size_t htmlStart = 0;
+  size_t counted = 0; // newline count for lua
+  size_t lines = 0;   // newlines for contents
 
-// Preprocess HTML to be XML valid
-std::string Parser::preprocessTags(std::string xml) {
-  static const std::unordered_set<std::string> scTags = {
-      "area",   "base",     "br",      "col",   "embed",  "hr",    "img",
-      "input",  "link",     "meta",    "param", "source", "track", "wbr",
-      "keygen", "basefont", "bgsound", "frame", "isindex"};
-
-  static const std::unordered_set<std::string> closesP = {
-      "address", "article", "aside",    "blockquote", "details", "dialog",
-      "div",     "dl",      "fieldset", "figcaption", "figure",  "footer",
-      "form",    "h1",      "h2",       "h3",         "h4",      "h5",
-      "h6",      "header",  "hgroup",   "hr",         "main",    "menu",
-      "nav",     "ol",      "p",        "pre",        "section", "table",
-      "ul"};
-
-  std::string result;
-  result.reserve(xml.size());
-
-  std::vector<std::string> stack;
-
-  // Helpers
-  auto lower = [](std::string s) {
-    std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) {
-      return static_cast<char>(std::tolower(c));
-    });
-    return s;
-  };
-
-  auto isNameChar = [](char c) {
-    return std::isalnum(static_cast<unsigned char>(c)) || c == '-' ||
-           c == '_' || c == ':';
-  };
-
-  size_t pos = 0;
-
-  while (pos < xml.size()) {
-    // Normal text
-    if (xml[pos] != '<') {
-      result += xml[pos++];
+  while (i < n) {
+    if (contents[i] != '<') {
+      i += 1;
       continue;
     }
 
-    // Comment
-    if (xml.compare(pos, 4, "<!--") == 0) {
-      size_t end = xml.find("-->", pos + 4);
+    // HTML comment
+    if (lower.compare(i, 4, "<!--") == 0) {
+      size_t end = contents.find("-->", i + 4);
 
       if (end == std::string::npos) {
-        result += xml.substr(pos);
-        break;
-      }
-
-      end += 3;
-      result += xml.substr(pos, end - pos);
-      pos = end;
-      continue;
-    }
-
-    // CData
-    if (xml.compare(pos, 9, "<![CDATA[") == 0) {
-      size_t end = xml.find("]]>", pos + 9);
-
-      if (end == std::string::npos) {
-        result += xml.substr(pos);
-        break;
-      }
-
-      end += 3;
-      result += xml.substr(pos, end - pos);
-      pos = end;
-      continue;
-    }
-
-    // Find end of tag
-    size_t end = pos + 1;
-    char quote = '\0';
-
-    while (end < xml.size()) {
-      char c = xml[end];
-
-      if (quote != '\0') {
-        if (c == quote)
-          quote = '\0';
+        i = n;
       } else {
-        if (c == '"' || c == '\'')
-          quote = c;
-        else if (c == '>')
-          break;
+        i = end + 3;
       }
 
-      end += 1;
-    }
-
-    if (end >= xml.size()) {
-      result += xml.substr(pos);
-      break;
-    }
-
-    std::string tag = xml.substr(pos, end - pos + 1);
-
-    if (tag.size() >= 2 && (tag[1] == '/' || tag[1] == '!' || tag[1] == '?')) {
-      result += tag;
-
-      // Closing tag
-      if (tag[1] == '/') {
-        size_t nameStart = 2;
-        size_t nameEnd = nameStart;
-
-        while (nameEnd < tag.size() && isNameChar(tag[nameEnd])) {
-          nameEnd += 1;
-        }
-
-        std::string tagName = lower(tag.substr(nameStart, nameEnd - nameStart));
-
-        for (auto it = stack.rbegin(); it != stack.rend(); it++) {
-          if (*it == tagName) {
-            stack.erase(std::next(it).base());
-            break;
-          }
-        }
-      }
-
-      pos = end + 1;
       continue;
     }
 
-    // Extract opening tag name
+    // CDATA
+    if (lower.compare(i, 9, "<![cdata[") == 0) {
+      size_t end = contents.find("]]>", i + 9);
 
-    size_t nameStart = pos + 1;
-    size_t nameEnd = nameStart;
+      if (end == std::string::npos) {
+        i = n;
+      } else {
+        i = end + 3;
+      }
 
-    while (nameEnd < end && isNameChar(xml[nameEnd])) {
+      continue;
+    }
+
+    // Doctype / other
+    if (i + 1 < n && contents[i + 1] == '!') {
+      size_t end = contents.find('>', i + 2);
+
+      if (end == std::string::npos) {
+        i = n;
+      } else {
+        i = end + 1;
+      }
+
+      continue;
+    }
+
+    // Processing instruction
+    if (i + 1 < n && contents[i + 1] == '?') {
+      size_t end = contents.find("?>", i + 2);
+
+      if (end == std::string::npos) {
+        i = n;
+      } else {
+        i = end + 2;
+      }
+
+      continue;
+    }
+
+    // Anything else that isn't an opening tag is plain text
+    if (i + 1 >= n ||
+        !std::isalpha(static_cast<unsigned char>(contents[i + 1]))) {
+      i += 1;
+      continue;
+    }
+
+    // Read oppening tag name
+    size_t nameEnd = i + 1;
+    while (nameEnd < n &&
+           (std::isalnum(static_cast<unsigned char>(contents[nameEnd])) ||
+            contents[nameEnd] == '-' || contents[nameEnd] == ':' ||
+            contents[nameEnd] == '_')) {
       nameEnd += 1;
     }
+    std::string name = lower.substr(i + 1, nameEnd - i - 1);
 
-    std::string tagName = lower(xml.substr(nameStart, nameEnd - nameStart));
+    // Find the end of the tag
+    size_t j = nameEnd;
+    char prev = 0;
+    while (j < n && contents[j] != '>') {
+      char c = contents[j];
 
-    // Process attributes + boolean attributes
+      if ((c == '"' || c == '\'') && prev == '=') {
+        size_t end = contents.find(c, j + 1);
 
-    std::string processed;
-    processed.reserve(tag.size() + 16);
+        if (end == std::string::npos) {
+          j += 1;
+        } else {
+          j = end + 1;
+        }
 
-    // Copy '<' + tag name
-    processed.append(tag, 0, nameEnd - pos);
-
-    size_t i = nameEnd - pos;
-
-    while (i < tag.size()) {
-      // Whitespace
-      if (std::isspace(static_cast<unsigned char>(tag[i]))) {
-        processed += tag[i++];
+        prev = c;
         continue;
       }
 
-      // End
-      if (tag[i] == '>') {
-        processed += '>';
-        i += 1;
+      if (!std::isspace(static_cast<unsigned char>(c))) {
+        prev = c;
+      }
+
+      j += 1;
+    }
+
+    if (j >= n) {
+      i = nameEnd;
+      continue;
+    }
+
+    bool selfClosing = contents[j - 1] == '/';
+    size_t tagStart = i;
+    size_t tagEnd = j + 1;
+
+    // treat script/style as raw
+    if ((name == "script" || name == "style") && !selfClosing) {
+      size_t end = lower.find("</" + name, tagEnd);
+      if (end == std::string::npos) {
+        i = n;
+      } else {
+        i = end;
+      }
+      continue;
+    }
+
+    // Any other tag
+    if (name != "lua" || selfClosing) {
+      i = tagEnd;
+      continue;
+    }
+
+    // Lua
+    if (tagStart > htmlStart) {
+      parsedContent.push_back(
+          {false, contents.substr(htmlStart, tagStart - htmlStart)});
+    }
+
+    size_t luaStart = tagEnd;
+    size_t luaEnd = n; // Treat rest of lua if unclosed
+    size_t next = n;
+    size_t p = luaStart;
+
+    while (p < n) {
+      char c = contents[p];
+
+      // Closing lua tag
+      if (c == '<' && lower.compare(p, 5, "</lua") == 0 && p + 5 < n &&
+          (contents[p + 5] == '>' ||
+           std::isspace(static_cast<unsigned char>(contents[p + 5])))) {
+        size_t gt = contents.find('>', p + 5);
+        luaEnd = p;
+
+        if (gt == std::string::npos) {
+          next = n;
+        } else {
+          next = gt + 1;
+        }
+
         break;
       }
 
-      // Self-closing
-      if (tag[i] == '/' && i + 1 < tag.size() && tag[i + 1] == '>') {
+      // Lua comments
+      bool isComment = (c == '-' && p + 1 < n && contents[p + 1] == '-');
+      if (isComment || c == '[') {
+        size_t b = p;
 
-        processed += "/>";
-        i += 2;
-        break;
-      }
+        if (isComment) {
+          b = p + 2;
+        }
 
-      // Attribute name
-      size_t attrStart = i;
+        bool isLong = false;
 
-      while (i < tag.size() &&
-             !std::isspace(static_cast<unsigned char>(tag[i])) &&
-             tag[i] != '=' && tag[i] != '>' && tag[i] != '/') {
-        i += 1;
-      }
+        if (b < n && contents[b] == '[') {
+          size_t m = b + 1;
 
-      if (attrStart == i) {
-        processed += tag[i++];
-        continue;
-      }
+          while (m < n && contents[m] == '=') {
+            m += 1;
+          }
 
-      std::string attrName = tag.substr(attrStart, i - attrStart);
+          if (m < n && contents[m] == '[') {
+            isLong = true;
+            std::string closer = "]" + std::string(m - b - 1, '=') + "]";
+            size_t end = contents.find(closer, m + 1);
 
-      // Whitespace after attribute name
-      size_t afterName = i;
+            if (end == std::string::npos) {
+              p = n;
+            } else {
+              p = end + closer.size();
+            }
+          }
+        }
 
-      while (afterName < tag.size() &&
-             std::isspace(static_cast<unsigned char>(tag[afterName]))) {
-        afterName += 1;
-      }
+        if (!isLong) {
+          if (isComment) {
+            p = b;
 
-      // Boolean attribute
-      if (afterName >= tag.size() || tag[afterName] != '=') {
-        processed += attrName;
-        processed += "=\"\"";
-        i = afterName;
-        continue;
-      }
-
-      // Normal attribute
-      processed += attrName;
-      i = afterName;
-      processed += '=';
-
-      i += 1;
-
-      // Preserve whitespace after '='
-      while (i < tag.size() &&
-             std::isspace(static_cast<unsigned char>(tag[i]))) {
-        processed += tag[i++];
-      }
-
-      if (i >= tag.size())
-        break;
-
-      // Quoted value
-      if (tag[i] == '"' || tag[i] == '\'') {
-        char q = tag[i];
-
-        processed += tag[i++];
-
-        while (i < tag.size()) {
-          char c = tag[i++];
-          processed += c;
-
-          if (c == q)
-            break;
+            while (p < n && contents[p] != '\n') {
+              p += 1;
+            }
+          } else {
+            p += 1;
+          }
         }
 
         continue;
       }
 
-      // Unquoted value
-      while (i < tag.size() &&
-             !std::isspace(static_cast<unsigned char>(tag[i])) &&
-             tag[i] != '>') {
+      // Strings
+      if (c == '"' || c == '\'') {
+        p += 1;
 
-        if (tag[i] == '/' && i + 1 < tag.size() && tag[i + 1] == '>') {
-          break;
+        while (p < n && contents[p] != c && contents[p] != '\n') {
+          if (contents[p] == '\\' && p + 1 < n) {
+            p += 1;
+          }
+
+          p += 1;
         }
 
-        processed += tag[i++];
-      }
-    }
+        if (p < n && contents[p] == c) {
+          p += 1;
+        }
 
-    tag = std::move(processed);
-
-    // Self-closing HTML tags
-
-    size_t check = tag.size() - 1;
-
-    while (check > 0 &&
-           std::isspace(static_cast<unsigned char>(tag[check - 1]))) {
-      check -= 1;
-    }
-
-    bool selfClosing = check > 0 && tag[check - 1] == '/';
-
-    if (!selfClosing && scTags.contains(tagName)) {
-      tag.insert(tag.size() - 1, "/");
-      selfClosing = true;
-    }
-
-    // Optional closing tags
-
-    auto closeTopIf = [&](auto predicate) {
-      if (!stack.empty() && predicate(stack.back())) {
-        result += "</" + stack.back() + ">";
-        stack.pop_back();
-        return true;
-      }
-      return false;
-    };
-
-    if (tagName == "li") {
-      closeTopIf([](const std::string &s) { return s == "li"; });
-    }
-
-    if (tagName == "dt" || tagName == "dd") {
-      closeTopIf([](const std::string &s) { return s == "dt" || s == "dd"; });
-    }
-
-    if (tagName == "option") {
-      closeTopIf([](const std::string &s) { return s == "option"; });
-    }
-
-    if (tagName == "optgroup") {
-      closeTopIf([](const std::string &s) { return s == "option"; });
-      closeTopIf([](const std::string &s) { return s == "optgroup"; });
-    }
-
-    if (tagName == "rt" || tagName == "rp") {
-      closeTopIf([](const std::string &s) { return s == "rt" || s == "rp"; });
-    }
-
-    if (tagName == "tr") {
-      closeTopIf([](const std::string &s) { return s == "tr"; });
-    }
-
-    if (tagName == "td" || tagName == "th") {
-      closeTopIf([](const std::string &s) { return s == "td" || s == "th"; });
-    }
-
-    if (tagName == "thead" || tagName == "tbody" || tagName == "tfoot") {
-      closeTopIf([](const std::string &s) {
-        return s == "thead" || s == "tbody" || s == "tfoot";
-      });
-    }
-
-    if (closesP.contains(tagName)) {
-      closeTopIf([](const std::string &s) { return s == "p"; });
-    }
-
-    // Code tags
-    bool isCDataTag =
-        tagName == "lua" || tagName == "style" || tagName == "script";
-
-    // lua-start attribute
-    if (tagName == "lua") {
-      size_t lineNum = std::count(xml.begin(), xml.begin() + pos, '\n');
-
-      std::string attr = " lua-start=\"" + std::to_string(lineNum) + "\"";
-
-      size_t insertOffset = tag.size() - 1;
-
-      tag.insert(insertOffset, attr);
-    }
-
-    result += tag;
-
-    // Ignore self closing tags
-    if (selfClosing) {
-      pos = end + 1;
-      continue;
-    }
-
-    // Wrap cdata
-    if (isCDataTag) {
-      size_t contentStart = end + 1;
-      std::string closeTag = "</" + tagName + ">";
-
-      size_t close = xml.find(closeTag, contentStart);
-
-      if (close == std::string::npos) {
-        result += xml.substr(contentStart);
-        break;
+        continue;
       }
 
-      std::string content = xml.substr(contentStart, close - contentStart);
-
-      result += "<![CDATA[";
-      result += escapeCData(content);
-      result += "]]>";
-      result += closeTag;
-
-      pos = close + closeTag.size();
-      continue;
+      p += 1;
     }
 
-    stack.push_back(tagName);
-    pos = end + 1;
+    // Pad the code to match line number
+    lines += std::count(contents.begin() + counted, contents.begin() + luaStart,
+                        '\n');
+    counted = luaStart;
+
+    if (luaEnd > luaStart) {
+      parsedContent.push_back(
+          {true, std::string(lines, '\n') +
+                     contents.substr(luaStart, luaEnd - luaStart)});
+    }
+
+    i = next;
+    htmlStart = next;
   }
 
-  // Close remaining
-  while (!stack.empty()) {
-    result += "</" + stack.back() + ">";
-    stack.pop_back();
+  if (htmlStart < n) {
+    parsedContent.push_back({false, contents.substr(htmlStart)});
   }
-
-  return result;
 }
 
-// Read the file and feed it to pugixml to generate the tree
-pugi::xml_document Parser::readFile(std::string filepath) {
+// Read the file and feed it to parser
+std::vector<Parser::parseItem> Parser::readFile(std::string filepath) {
   // Load file contents
   std::ifstream file(filepath);
 
   std::string contents((std::istreambuf_iterator<char>(file)),
                        std::istreambuf_iterator<char>());
 
-  // Preprocess them
-  contents = preprocessTags(contents);
+  file.close();
 
-  // Check whether DOCTYPE exists at the start of the document for atribute and
-  // remove it
-  bool hasDoctype = false;
+  std::vector<Parser::parseItem> parsedContent;
 
-  size_t first = contents.find_first_not_of(" \t\r\n");
+  parseContents(contents, parsedContent);
 
-  if (first != std::string::npos &&
-      (contents.compare(first, 9, "<!DOCTYPE") == 0 ||
-       contents.compare(first, 9, "<!doctype") == 0)) {
-    hasDoctype = true;
-
-    size_t doctypeEnd = contents.find('>', first);
-
-    if (doctypeEnd != std::string::npos) {
-      contents.erase(first, doctypeEnd - first + 1);
-    }
-  }
-
-  // Wrap the contents so they are valid
-  contents = "<sm-wrap-content add-doctype=\"" +
-             std::string(hasDoctype ? "true" : "false") + "\">" + contents +
-             "</sm-wrap-content>";
-
-  // Feed to pugixml
-  pugi::xml_document doc;
-
-  pugi::xml_parse_result result = doc.load_string(
-      contents.c_str(),
-      pugi::parse_default | pugi::parse_comments | pugi::parse_doctype);
-
-  if (!result) {
-    pugi::xml_document errDoc;
-
-    // Create the HTML
-    std::string errorHtml =
-        "<html>"
-        "<head>"
-        "<title>Silvermoon Parsing Error</title>"
-        "<style>"
-        "body {"
-        "    font-family: sans-serif;"
-        "    max-width: 800px;"
-        "    margin: 40px auto;"
-        "    padding: 0 20px;"
-        "    color: #333;"
-        "    background: #f5f5f5;"
-        "}"
-        "h1 {"
-        "    color: #b42318;"
-        "}"
-        "h2 {"
-        "    margin-top: 30px;"
-        "}"
-        "h3 {"
-        "    margin-bottom: 5px;"
-        "}"
-        "p {"
-        "    line-height: 1.5;"
-        "}"
-        "hr {"
-        "    margin: 30px 0;"
-        "    border: 0;"
-        "    border-top: 1px solid #ccc;"
-        "}"
-        "small {"
-        "    color: #777;"
-        "}"
-        "</style>"
-        "</head>"
-        "<body>"
-
-        "<h1>Failed to parse Silvermoon HTML document</h1>"
-
-        "<p>Silvermoon encountered an error while trying to parse this "
-        "Silvermoon HTML document.</p>"
-
-        "<h2>Error Details</h2>"
-        "<p><strong>Description:</strong> " +
-        std::string(result.description()) +
-        "</p>"
-        "<p><strong>Offset:</strong> " +
-        std::to_string(result.offset) +
-        "</p>"
-        "<p><strong>File:</strong> " +
-        filepath +
-        "</p>"
-
-        "<hr/>"
-
-        "<h2>What to Do</h2>"
-
-        "<h3>Site owner / Developer</h3>"
-        "<p>"
-        "Check the HTML document around the reported offset and look for "
-        "invalid, malformed, or unsupported markup. Correct the document "
-        "and try loading it again."
-        "</p>"
-
-        "<h3>Visitor</h3>"
-        "<p>"
-        "Try refreshing the page or returning to the previous page. "
-        "If the problem persists, contact the site owner and report "
-        "the error shown above."
-        "</p>"
-
-        "<hr/>"
-
-        "<p><small>"
-        "Silvermoon version " +
-        SM_VERSION +
-        "</small></p>"
-
-        "</body>"
-        "</html>";
-
-    errDoc.load_string(errorHtml.c_str(), pugi::parse_default |
-                                              pugi::parse_comments |
-                                              pugi::parse_doctype);
-
-    return errDoc;
-  }
-  return doc;
+  return parsedContent;
 }
 } // namespace html::prs
