@@ -205,7 +205,7 @@ void worker(FCGX_Request *request) {
 
   // Do stuff
   html::prs::Parser parser;
-  pugi::xml_document parsedDoc = parser.readFile(script);
+  std::vector<html::prs::Parser::parseItem> parsedDoc = parser.readFile(script);
 
   std::map<std::string, std::string> resHeaders;
   html::crt::Creator creator;

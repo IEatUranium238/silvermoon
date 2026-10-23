@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10.0)
 
-project(silvermoon VERSION 0.4.0 LANGUAGES C CXX)
+project(silvermoon VERSION 0.4.5 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -18,7 +18,6 @@ if(MSVC)
 endif()
 
 # Dependencies
-find_package(pugixml REQUIRED)
 
 find_path(FCGI_INCLUDE_DIR NAMES fastcgi.h fcgio.h)
 
@@ -61,7 +60,6 @@ if(NOT LUAJIT_STATIC_LIB)
         "  Debian based: sudo apt install libluajit-5.1-dev\n"
         "  Fedora based: sudo dnf install luajit-devel\n"
         "  macOS: brew install luajit\n"
-        "  Windows: winget install -e --id DEVCOM.LuaJIT"
     )
 endif()
 
@@ -98,9 +96,7 @@ target_include_directories(silvermoon PRIVATE
 # Export symbols so LuaJIT's FFI and dlsym-based lookups work
 set_target_properties(silvermoon PROPERTIES ENABLE_EXPORTS ON)
 
-# Pugixml built and installed from source.
 target_link_libraries(silvermoon PRIVATE
-    pugixml::pugixml
     ${LUAJIT_STATIC_LIB}
     ${FCGI_LIB}
     ${CMAKE_DL_LIBS}

@@ -3,8 +3,8 @@
 #pragma once
 #include "../../lua/manager/manager.h"
 #include "../../lua/transport/transport.h"
+#include "../parser/parser.h"
 #include <map>
-#include <pugixml.hpp>
 #include <string>
 
 namespace html::crt {
@@ -12,13 +12,9 @@ class Creator {
 private:
   bool error = false;
   bool stopper = false;
-  std::string escape(std::string s);
-  void render(pugi::xml_node node, std::ostringstream &out,
-              lua::mngr::LuaManager &script, std::string filename);
-
 public:
   std::string createHTML(
-      const pugi::xml_document &doc, std::string fp,
+      std::vector<html::prs::Parser::parseItem> doc, std::string fp,
       std::map<std::string, std::string> cgi,
       std::map<std::string, std::string> headers, std::string body,
       std::map<std::string, std::string> &httpHeaders,
