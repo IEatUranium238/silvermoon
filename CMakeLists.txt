@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10.0)
 
-project(silvermoon VERSION 0.5.0 LANGUAGES C CXX)
+project(silvermoon VERSION 0.4.5 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -60,7 +60,6 @@ if(NOT LUAJIT_STATIC_LIB)
         "  Debian based: sudo apt install libluajit-5.1-dev\n"
         "  Fedora based: sudo dnf install luajit-devel\n"
         "  macOS: brew install luajit\n"
-        "  Windows: winget install -e --id DEVCOM.LuaJIT"
     )
 endif()
 
