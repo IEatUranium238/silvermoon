@@ -137,7 +137,6 @@ void worker(FCGX_Request *request) {
     body += std::string(buffer, read);
   }
 
-
   std::string type = cgi["CONTENT_TYPE"];
   // Parse form body
   if (type == "application/x-www-form-urlencoded") {
@@ -307,41 +306,82 @@ void worker(FCGX_Request *request) {
   delete request;
 }
 
-int main() {
-  bool usingUnixSockets = false;
+static bool envIsTrue(const char *name) {
+  const char *value = std::getenv(name);
+  return value != nullptr && std::strcmp(value, "true") == 0;
+}
 
-  // Unix socket setting discovery
-  const char *usEnv = std::getenv("SM_USE_UNIXSOCKS");
-  if (usEnv != nullptr && std::strcmp(usEnv, "true") == 0) {
+static void printHelp(const char *prog) {
+  std::cout << "Usage: " << prog << R"( [options]
+
+General options:
+  -h, --help                 Show this message and exit
+  -v, --version              Show version and exit
+  --unix-socket              Listen on an UNIX socket
+
+Safety overrides:
+  --enable-codeloading       Enables load,loastring,dofile and loadfile
+                             (env: SM_ENABLE_RISKY_CODELOADING="true")
+
+  --enable-shell             Enables os.execute and io.popen
+                             (env: SM_ENABLE_VERY_RISKY_SHELL="true")
+
+  --enable-open              Enables io.open
+                             (env: SM_ENABLE_RISKY_OPEN="true")
+
+  --enable-adv-fs            Enables os.remove and os.rename
+                             (env: SM_ENABLE_VERY_RISKY_ADVANCED_FS="true")
+
+  NOTE: Usage of these flags will override env. variables!
+)" << std::endl;
+}
+
+int main(int argc, char **argv) {
+  bool usingUnixSockets = envIsTrue("SM_USE_UNIXSOCKS");
+
+  enableCL = envIsTrue("SM_ENABLE_RISKY_CODELOADING");
+  enableExecute = envIsTrue("SM_ENABLE_VERY_RISKY_SHELL");
+  enableOpen = envIsTrue("SM_ENABLE_RISKY_OPEN");
+  enableAdvFs = envIsTrue("SM_ENABLE_VERY_RISKY_ADVANCED_FS");
+
+  // Handle flags
+  for (int i = 1; i < argc; ++i) {
+    const std::string arg = argv[i];
+
+    if (arg == "-h" || arg == "--help") {
+      printHelp(argv[0]);
+      return 0;
+    } else if (arg == "-v" || arg == "--version") {
+      std::cout << SM_VERSION << std::endl;
+      return 0;
+    } else if (arg == "--cake") {
+      std::cout << "The cake is a lie." << std::endl;
+      return 0;
+    } else if (arg == "--unix-socket") {
+      usingUnixSockets = true;
+    } else if (arg == "--enable-codeloading") {
+      enableCL = true;
+    } else if (arg == "--enable-shell") {
+      enableExecute = true;
+    } else if (arg == "--enable-open") {
+      enableOpen = true;
+    } else if (arg == "--enable-adv-fs") {
+      enableAdvFs = true;
+    } else {
+      std::cerr << "Unknown option: " << arg << "\n"
+                << "Run '" << argv[0] << " --help' for usage." << std::endl;
+      return 1;
+    }
+  }
+
+  // Unix socket setup
+  if (usingUnixSockets) {
 #ifdef _WIN32
     std::cerr << "UNIX sockets are only usable on UNIX-like OSes!" << std::endl;
     return 1;
 #else
-    usingUnixSockets = true;
     unlink(sockPath); // Clear stale socket
 #endif
-  }
-
-  // Safety settings
-  const char *clEnv = std::getenv("SM_ENABLE_RISKY_CODELOADING");
-  const char *executionEnv = std::getenv("SM_ENABLE_VERY_RISKY_SHELL");
-  const char *openEnv = std::getenv("SM_ENABLE_RISKY_OPEN");
-  const char *fsEnv = std::getenv("SM_ENABLE_VERY_RISKY_ADVANCED_FS");
-
-  if (clEnv != nullptr && std::strcmp(clEnv, "true") == 0) {
-    enableCL = true;
-  }
-
-  if (executionEnv != nullptr && std::strcmp(executionEnv, "true") == 0) {
-    enableExecute = true;
-  }
-
-  if (openEnv != nullptr && std::strcmp(openEnv, "true") == 0) {
-    enableOpen = true;
-  }
-
-  if (fsEnv != nullptr && std::strcmp(fsEnv, "true") == 0) {
-    enableAdvFs = true;
   }
 
   // FCGI init
